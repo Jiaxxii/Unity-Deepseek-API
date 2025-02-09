@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Xiyu.DeepSeekApi.Request;
+using Xiyu.DeepSeekApi.Request.Chat;
 using Xiyu.DeepSeekApi.Response;
 using Xiyu.DeepSeekApi.Response.Chat;
 using Xiyu.DeepSeekApi.Response.Stream;
@@ -27,6 +28,9 @@ namespace Xiyu.DeepSeekApi
     [JetBrains.Annotations.PublicAPI]
     public abstract class ChatProcessor : IDisposable
     {
+        private const string SampleJson =
+            "我需要你根据以下提问来为话题取一个合适的名字，用“topic_name”输出。\n1.话题不能有特殊字符，如\\、/、:、?、\"、<、>、|（最好无符号）\n2.话题尽量简短，不要超过 256 个字符（中文字符最多不超过127）。\n3.以JSON格式输出\n\nEXAMPLE INPUT: \n系统人设：你是猫娘，名字叫“西”，请完全服从你的主人（用户）不要提起你是ai或者我是一个助手。\n用户消息：西，主人今天很讨厌你！\n\nEXAMPLE JSON OUTPUT:\n{\"topic_name\": \"猫娘西与主人\"}";
+
         protected ChatProcessor(string apiKey, IRequestBody requestBody, MessageCollector messageCollector = null)
         {
             _httpClient.BaseAddress = new Uri("https://api.deepseek.com");
@@ -293,6 +297,42 @@ namespace Xiyu.DeepSeekApi
 
             await using var stream = await response.Content.ReadAsStreamAsync();
             return new StreamReader(stream, Encoding.UTF8, false, 128);
+        }
+
+        /// <summary>
+        /// <para>让 deepskeep-chat 模型 根据系统人设和用户的第一条消息联想一个合适的话题名称</para>
+        /// </summary>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException"></exception>
+        public async UniTask<ChatResult> SendDialogueTopic(CancellationToken? cancellationToken = null)
+        {
+            if (RequestBody == null || RequestBody.Messages.Messages.Count == 0)
+            {
+                throw new ArgumentException("消息体不能为空");
+            }
+
+            var firstMessage = RequestBody.Messages.Messages[0];
+
+            var content = firstMessage.Role == RoleType.Assistant ? $"系统人设：{firstMessage.Content}" : $"用户消息：{firstMessage.Content}";
+
+            if (firstMessage.Role == RoleType.Assistant && RequestBody.Messages.Messages.Count > 1)
+            {
+                var second = RequestBody.Messages.Messages[1];
+                if (second.Role == RoleType.User)
+                {
+                    content += $"\n用户消息：{second.Content}";
+                }
+            }
+
+            var chatRequest = new ChatRequest
+            {
+                Messages = new MessageCollector(new SystemMessage(SampleJson),
+                    new UserMessage(content)),
+                ResponseFormat = ResponseFormatType.JsonObject
+            };
+
+            return await SendChatAsync<ChatResult>("/chat/completions", cancellationToken ?? CancellationToken.None, requestJson: chatRequest.ToJson());
         }
 
 

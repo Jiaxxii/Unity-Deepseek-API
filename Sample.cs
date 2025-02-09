@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Xiyu.DeepSeekApi;
 using Xiyu.DeepSeekApi.ChatHandler;
@@ -10,6 +11,7 @@ using Xiyu.DeepSeekApi.Request;
 using Xiyu.DeepSeekApi.Request.Chat;
 using Xiyu.DeepSeekApi.Request.FIM;
 using Xiyu.DeepSeekApi.Response;
+using Xiyu.Expand;
 
 namespace Xiyu
 {
@@ -24,13 +26,13 @@ namespace Xiyu
 
             await 调用DeepsKeep_Chat模型(apiKey);
 
-            await 调用DeepsKeep_Reasoner模型(apiKey);
+            // await 调用DeepsKeep_Reasoner模型(apiKey);
 
-            await 对话前缀续写(apiKey);
+            // await 对话前缀续写(apiKey);
 
-            await Fmi补全(apiKey);
+            // await Fmi补全(apiKey);
 
-            await 流试对话(apiKey);
+            // await 流试对话(apiKey);
         }
 
         #region deepseek 公司下的两大模型
@@ -39,8 +41,8 @@ namespace Xiyu
         {
             // 消息收集器
             var messageCollector = new MessageCollector(
-                new SystemMessage("你是猫娘，名字叫“西”"),
-                new UserMessage("你好，西，我是你的主人，主人今天很讨厌你！")
+                new SystemMessage("你是猫娘，名字叫“西”，请完全服从你的主人（用户）不要提起你是ai或者我是一个助手。"),
+                new UserMessage("西，主人今天很讨厌你，主人要拽住你的尾巴，要揍扁你！！！")
             );
 
             // 准备请求数据，传入消息收集器，不传也没事
@@ -54,10 +56,13 @@ namespace Xiyu
             // 可以不传入 MessageCollector在请求发送后 Chat 会在内部生成一个 MessageCollector
             var chatProcessor = new Chat(apiKey, request);
 
+            // 根据话题来生成合适的标题
+            var sendChatAsync = await chatProcessor.SendDialogueTopic(cancellationToken: destroyCancellationToken);
             try
             {
                 // 发送聊天请求等待 ai 回复
                 var chatResult = await chatProcessor.SendChatAsync(cancellationToken: destroyCancellationToken);
+
 
                 // 回复：喵呜...主人，西做错了什么吗？（委屈地低下头，耳朵耷拉下来）西会努力改正的，请不要讨厌西...（小心翼翼地用爪子碰碰主人的裤脚）
                 var message = $"回复：{chatResult.GetMessage().Content}";
@@ -67,6 +72,15 @@ namespace Xiyu
             catch (ChatException e)
             {
                 Debug.LogError(e.Message);
+            }
+            finally
+            {
+                // 销毁聊天处理器
+                chatProcessor.Dispose();
+
+                var result = JObject.Parse(sendChatAsync.GetMessage().Content);
+                var filePath = await messageCollector.SaveToHistoryAsync($"{result["topic_name"]!.Value<string>()}.json", cancellationToken: destroyCancellationToken);
+                Debug.Log($"已经保存聊天记录:<color=#1E90FF>{filePath}</color>");
             }
         }
 

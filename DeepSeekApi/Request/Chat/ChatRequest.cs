@@ -60,7 +60,7 @@ namespace Xiyu.DeepSeekApi.Request.Chat
         /// 此外，如果 finish_reason="length"，这表示生成超过了 max_tokens 或对话超过了最大上下文长度，消息内容可能会被部分截断。
         /// </para>
         /// </summary>
-        public ResponseFormatType ResponseFormat { get; } = ResponseFormatType.Text;
+        public ResponseFormatType ResponseFormat { get; set; } = ResponseFormatType.Text;
 
 
         /// <summary>
