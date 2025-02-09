@@ -1,4 +1,7 @@
-﻿using Cysharp.Threading.Tasks;
+﻿using System;
+using System.IO;
+using System.Text.RegularExpressions;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Xiyu.DeepSeekApi;
 using Xiyu.DeepSeekApi.ChatHandler;
@@ -12,19 +15,21 @@ namespace Xiyu
 {
     public class Sample : MonoBehaviour
     {
+        // "com.cysharp.unitask": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask"
+        // "com.unity.nuget.newtonsoft-json": "3.2.1"
         private async void Start()
         {
             // 请使用自己的 apiKey，发布时请不要将 apiKey 直接写在代码中
-            const string apiKey = "sk-a64515dfdea042058bc6b603afc1ebc3";
-            
+            var apiKey = await GetFileApiKey();
+
             await 调用DeepsKeep_Chat模型(apiKey);
 
             await 调用DeepsKeep_Reasoner模型(apiKey);
 
             await 对话前缀续写(apiKey);
-            
+
             await Fmi补全(apiKey);
-            
+
             await 流试对话(apiKey);
         }
 
@@ -75,14 +80,10 @@ namespace Xiyu
                 new UserMessage("你好，西，我是你的主人，主人今天很讨厌你！")
             );
 
-            // 准备请求数据，传入消息收集器，不传也没事
-            // 理论上使用 ChatRequest 也没事，ChatRequest 很多参数都是 DeepseekReasoner 都是不支持的，更加推荐使用 ReasonerRequest
-            // var request = new ChatRequest(messageCollector)
-            // {
-            //     // 根据自己的需求设置参数
-            //     MaxTokens = 256
-            // };
 
+            // 准备请求数据，传入消息收集器，不传也没事
+            // 理论上使用 ChatRequest 也没事，ChatRequest 很多参数都是 DeepseekReasoner 都是不支持的（甚至加了一些参数会报错），所以更加推荐使用 ReasonerRequest
+            // var request = new ChatRequest(messageCollector) { MaxTokens = 256 };
             var request = new ReasonerRequest(messageCollector);
 
             // 创建一个聊天处理器 如果 Request 已经设置了 MessageCollector
@@ -224,5 +225,12 @@ namespace Xiyu
         }
 
         #endregion
+
+        public static async UniTask<string> GetFileApiKey(string filePath = @"C:\Users\jiaxx\Desktop\新建 文本文档.txt")
+        {
+            var text = await File.ReadAllTextAsync(filePath);
+
+            return Regex.Match(text, "<API-KEY>(?<apiKey>.+)</API-KEY>").Groups["apiKey"].Value;
+        }
     }
 }

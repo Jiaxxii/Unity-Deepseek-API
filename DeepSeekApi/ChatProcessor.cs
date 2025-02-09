@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Xiyu.DeepSeekApi.Request;
 using Xiyu.DeepSeekApi.Response;
@@ -276,10 +277,16 @@ namespace Xiyu.DeepSeekApi
 
         protected async UniTask<StreamReader> SendStreamChatAsync(string requestUri, CancellationToken? cancellationToken = null, string jsonContent = null)
         {
+            jsonContent ??= RequestBody.ToJson();
+
+            if (!JObject.Parse(jsonContent).TryGetValue("stop", out var stop) || !stop.Value<bool>())
+            {
+                throw new ArgumentException("StreamOptions.Stop 必须为 true 才能使用流式对话！");
+            }
+
             // 发送请求
             using var request = GetRequestMessage(requestUri);
 
-            jsonContent ??= RequestBody.ToJson();
             request.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
             using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken ?? CancellationToken.None);
