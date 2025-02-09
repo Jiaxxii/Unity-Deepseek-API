@@ -22,10 +22,10 @@
 
 ## DeepSeek 两大核心模型
 ```csharp
-var reasoner = new DeepseekReasoner(apiKey, request);
+var chat = new Chat(apiKey, request);
 
 // 推理模型，支持的参数少，但是推理链相当强大
-var request = new ReasonerRequest(messages);
+var deepseekReasoner = new DeepseekReasoner(apiKey, request);
 ```
 
 
