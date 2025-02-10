@@ -154,6 +154,7 @@ namespace Xiyu.DeepSeekApi
         /// <param name="assistantMessage">助手消息</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>请求结果</returns>
+        [Obsolete("此方法可能造成阻塞，请使用非流式方法")]
         public virtual async UniTask<List<StreamChatResult>> SendStreamChatAsync(Action<string> onMessageReceived, AssistantMessage assistantMessage,
             CancellationToken? cancellationToken = null)
         {
@@ -177,6 +178,7 @@ namespace Xiyu.DeepSeekApi
         /// <param name="onMessageReceived">收到回复段落时</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>请求结果</returns>
+        [Obsolete("此方法可能造成阻塞，请使用非流式方法")]
         public async UniTask<List<StreamChatResult>> SendStreamChatAsync(Action<string> onMessageReceived, CancellationToken? cancellationToken = null)
         {
             var chatResult = await SendStreamChatAsync("/chat/completions", onMessageReceived, cancellationToken);
@@ -198,6 +200,7 @@ namespace Xiyu.DeepSeekApi
             return chatResult;
         }
 
+        [Obsolete("此方法可能造成阻塞，请使用非流式方法")]
         protected async UniTask<List<StreamChatResult>> SendStreamChatAsync(string requestUri, Action<string> onMessageReceived, CancellationToken? cancellationToken = null)
         {
             _stringBuilder.Clear();
@@ -205,7 +208,6 @@ namespace Xiyu.DeepSeekApi
 
             // 发送请求
             using var reader = await SendStreamChatAsync(requestUri, cancellationToken);
-
             // --- SSE 流式响应处理 ---
 
             var results = new List<StreamChatResult>();
@@ -279,13 +281,15 @@ namespace Xiyu.DeepSeekApi
             throw new ChatException(500, "流式响应异常");
         }
 
+        [Obsolete("此方法可能造成阻塞，请使用非流式方法")]
         protected async UniTask<StreamReader> SendStreamChatAsync(string requestUri, CancellationToken? cancellationToken = null, string jsonContent = null)
         {
             jsonContent ??= RequestBody.ToJson();
 
-            if (!JObject.Parse(jsonContent).TryGetValue("stop", out var stop) || !stop.Value<bool>())
+            var isStream = JObject.Parse(jsonContent).GetValue("stream")?.Value<bool>();
+            if (isStream is null or false)
             {
-                throw new ArgumentException("StreamOptions.Stop 必须为 true 才能使用流式对话！");
+                throw new ArgumentException("StreamOptions 必须为 实例化 才能使用流式对话！");
             }
 
             // 发送请求
@@ -296,8 +300,9 @@ namespace Xiyu.DeepSeekApi
             using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken ?? CancellationToken.None);
 
             await using var stream = await response.Content.ReadAsStreamAsync();
-            return new StreamReader(stream, Encoding.UTF8, false, 128);
+            return new StreamReader(stream, Encoding.UTF8);
         }
+
 
         /// <summary>
         /// <para>让 deepskeep-chat 模型 根据系统人设和用户的第一条消息联想一个合适的话题名称</para>
@@ -343,11 +348,7 @@ namespace Xiyu.DeepSeekApi
                 return requestMessage;
             }
 
-            requestMessage = new HttpRequestMessage(HttpMethod.Post, requestUri)
-            {
-                Content = new StringContent(RequestBody.ToJson(), Encoding.UTF8, "application/json")
-            };
-
+            requestMessage = new HttpRequestMessage(HttpMethod.Post, requestUri);
             _requestMessagesBuffer.TryAdd(requestUri, requestMessage);
 
             return requestMessage;

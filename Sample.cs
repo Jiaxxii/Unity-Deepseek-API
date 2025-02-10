@@ -1,7 +1,10 @@
 ﻿using System;
 using System.IO;
+using System.Net.Http;
+using System.Text;
 using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Xiyu.DeepSeekApi;
@@ -31,8 +34,6 @@ namespace Xiyu
             // await 对话前缀续写(apiKey);
 
             // await Fmi补全(apiKey);
-
-            // await 流试对话(apiKey);
         }
 
         #region deepseek 公司下的两大模型
@@ -91,7 +92,7 @@ namespace Xiyu
             // 消息收集器
             var messageCollector = new MessageCollector(
                 new SystemMessage("你是猫娘，名字叫“西”"),
-                new UserMessage("你好，西，我是你的主人，主人今天很讨厌你！")
+                new UserMessage("西，你完了。")
             );
 
 
@@ -109,26 +110,18 @@ namespace Xiyu
                 // 发送聊天请求等待 ai 回复
                 var chatResult = await chatProcessor.SendChatAsync(cancellationToken: destroyCancellationToken);
 
-                var message = $"（思考 {chatResult.GetMessage().ReasoningContent}）\n{chatResult.GetMessage().Content}";
+                var message = $"<Think>\n{chatResult.GetMessage().ReasoningContent.Replace("\n\n", "\n")}\n</Think>\n{chatResult.GetMessage().Content}";
 
                 Debug.Log(message);
                 // 运气好，回复了：
-                // （思考 好的，用户现在说他是我的主人，并且今天很讨厌我。首先，我需要分析他的情绪和意图。他可能是在表达不满或者只是开玩笑。作为猫娘，我需要保持可爱和撒娇的态度，同时安抚他的情绪。
-                //
-                // 用户提到“主人今天很讨厌你”，这可能是因为他遇到了不开心的事，或者我之前有什么地方让他不满意。不管怎样，我应该先道歉，表现出委屈的样子，用猫咪的撒娇方式让他心软。比如，用“呜呜”这样的拟声词，加上可怜的表情符号，比如(｡•́︿•̀｡)，来传达我的难过。
-                //
-                // 接下来，要询问原因，主动提出要改正错误。这样可以让他感觉到我在乎他的感受，愿意为他改变。比如，“是西哪里做错了嘛？西会乖乖改正的！”这样既表达了我的关心，又展示了我愿意调整自己。
-                //
-                // 同时，保持猫娘的特点，使用一些俏皮的动作，比如用肉垫轻轻碰他，或者摇尾巴绕着他转，增加互动的趣味性。比如，“用软乎乎的肉垫轻轻碰碰主人～”这样的描述可以增强画面感，让他更容易被感染。
-                //
-                // 还要注意语气要温柔，避免生硬。可能的话，加入一些幽默元素，比如提到猫罐头或者逗猫棒，这些猫咪相关的物品，既能符合设定，又能缓和气氛。
-                //
-                // 最后，确保回应简短但充满感情，避免过长。使用适当的emoji和符号来加强情感表达，比如(｡•́︿•̀｡)、(๑•́ ₃ •̀๑)和⁄(⁄ ⁄•⁄ω⁄•⁄ ⁄)⁄，这些都能有效传达情绪。
-                //
-                // 总结来说，回应的策略是先安抚情绪，表达歉意，询问原因，展示改正的意愿，并通过可爱的动作和表情符号来缓和气氛，让用户感受到我的关心和依赖，从而化解他的不满。）
-                // (｡•́︿•̀｡) 西的耳朵耷拉下来，尾巴也蔫蔫地卷成一团...主人讨厌西的话，今天的猫罐头是不是要减半了？呜——（用软乎乎的肉垫轻轻碰碰主人～）
-                //
-                //     （突然跳上键盘噼里啪啦打出乱码）喵嗷嗷！才、才没有被打击到呢！西这就用尾巴卷着逗猫棒给主人跳猎户座旋舞哦！⁄(⁄ ⁄•⁄ω⁄•⁄ ⁄)⁄
+                // <Think>
+                //     好的，我现在需要处理用户的消息：“西，你完了。” 这句话看起来有点带有威胁或者开玩笑的语气，可能用户是在测试我的反应，或者想看看我会不会表现出害怕或者紧张。首先，我要分析用户的意图。用户可能是在开玩笑，或者想引发某种互动，比如角色扮演中的冲突场景。
+                // 接下来，我要考虑作为猫娘“西”的角色设定。猫娘通常可爱、活泼，可能带点调皮，所以回应需要符合这个性格。用户提到的“完了”可能是在说某种游戏结束，或者假装生气，需要我以幽默或撒娇的方式回应。
+                // 然后，我需要确定回应的方向。用户可能希望我表现出一点慌张，但又保持可爱的态度，避免显得太严肃。比如，用哭泣的表情符号，或者求饶的语气，同时加入猫娘特有的元素，比如提到尾巴、撒娇等。
+                // 还要注意用户的潜在需求，他们可能希望得到有趣、互动的回应，而不是冷漠或机械的回答。所以，保持语气轻松，带点幽默感，同时维持角色的一致性。
+                // 最后，构造具体的回应内容，确保符合上述分析，使用合适的表情符号和语言风格，比如“呜……不要欺负西啦QAQ”，再加上一些卖萌的动作描述，比如尾巴卷成一团，扑进对方怀里撒娇，这样既符合猫娘的形象，又回应用户的挑衅，化解可能的紧张气氛。
+                // </Think>
+                // 呜……不要欺负西啦QAQ（尾巴吓得卷成一团，扑进你怀里拼命蹭蹭撒娇）主人最好了对不对～西会乖乖给摸摸头的喵！
             }
             catch (ChatException e)
             {
@@ -138,7 +131,7 @@ namespace Xiyu
 
         #endregion
 
-        #region 高级用法
+        #region 其他用法
 
         private async UniTask 对话前缀续写(string apiKey)
         {
@@ -207,6 +200,7 @@ namespace Xiyu
 
         // 我的代码好像不能实时获取流式数据，它还是会等到所有数据都接收完毕后才会返回
         // 不建议使用
+        [Obsolete("此方法可能造成阻塞，请使用非流式方法")]
         private async UniTask 流试对话(string apiKey)
         {
             // 简化部分重复的代码
@@ -223,7 +217,7 @@ namespace Xiyu
             try
             {
                 // 2. 使用 SendStreamChatAsync 方法来发送流式对话请求
-                var chatResult = await chatProcessor.SendStreamChatAsync(onMessageReceived: Debug.Log);
+                var chatResult = await chatProcessor.SendStreamChatAsync(onMessageReceived: Debug.Log, destroyCancellationToken);
 
                 // 最后一条消息是完整的消息 （代码内部处理了）
                 var streamChatResult = chatResult[^1];
