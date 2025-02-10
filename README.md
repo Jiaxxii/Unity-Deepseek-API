@@ -109,6 +109,7 @@ var fimRequest = new FimRequest(
 ```
 
 ### 5. 流式对话（我的代码不能实时接收流式数据）
+⚠️ 目前已经停止使用
 ```csharp
 // 确保开启 stream
 request.StreamOptions = new StreamOptions(true);
