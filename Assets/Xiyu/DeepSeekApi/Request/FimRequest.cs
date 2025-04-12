@@ -2,7 +2,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Xiyu.DeepSeekApi.Request.FIM
+namespace Xiyu.DeepSeekApi.Request
 {
     /*呜呜呜，我不想写注释*/
     [JetBrains.Annotations.PublicAPI]

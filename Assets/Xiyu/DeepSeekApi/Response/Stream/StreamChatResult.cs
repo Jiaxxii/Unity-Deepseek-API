@@ -18,5 +18,6 @@ namespace Xiyu.DeepSeekApi.Response.Stream
         };
 
         public Message GetMessage() => IsDone ? Message.None : Choices[0].DeltaMessage;
+        
     }
 }

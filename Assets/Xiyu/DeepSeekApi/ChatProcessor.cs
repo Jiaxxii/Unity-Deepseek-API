@@ -27,14 +27,14 @@ namespace Xiyu.DeepSeekApi
     [JetBrains.Annotations.PublicAPI]
     public abstract class ChatProcessor : IDisposable
     {
-        protected ChatProcessor(string apiKey, IRequestBody requestBody, MessageCollector messageCollector = null)
+        protected ChatProcessor(string apiKey, IRequestBody requestBody)
         {
             _httpClient.BaseAddress = new Uri("https://api.deepseek.com");
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             RequestBody = requestBody;
-            MessageCollector = messageCollector ?? requestBody.Messages as MessageCollector ?? new MessageCollector();
+            MessageCollector = (MessageCollector)requestBody.Messages;
         }
 
         protected const string DeepSeekChatUrl = "/chat/completions";
@@ -96,7 +96,7 @@ namespace Xiyu.DeepSeekApi
         /// </summary>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>请求结果</returns>
-        public  async UniTask<ChatResult> SendChatAsync(CancellationToken? cancellationToken = null)
+        public async UniTask<ChatResult> SendChatAsync(CancellationToken? cancellationToken = null)
         {
             var chatResult = await SendChatAsync<ChatResult>(DeepSeekChatUrl, cancellationToken);
 
@@ -126,19 +126,21 @@ namespace Xiyu.DeepSeekApi
         /// <returns>请求结果</returns>
         public virtual async UniTask<ChatResult> SendChatAsync(AssistantMessage assistantMessage, CancellationToken? cancellationToken = null)
         {
+            TryRecordMessage(assistantMessage);
             var chatResult = await SendChatAsync<ChatResult>(DeepSeekChatContinuationPrefix, cancellationToken);
 
-            chatResult = ReplaceResultContent(ref chatResult, assistantMessage.Content);
+            var prefix = assistantMessage.Content; // RequestBody.Model == ModelType.DeepseekChat ? assistantMessage.Content : string.Empty;
+            chatResult = ReplaceResultContent(ref chatResult, prefix);
             TryRecordMessage(new AssistantMessage(chatResult.GetMessage().Content, assistantMessage.Name, assistantMessage.ReasoningContent, assistantMessage.Prefix));
 
             return chatResult;
         }
 
-        protected  async UniTask<T> SendChatAsync<T>(string requestUri, CancellationToken? cancellationToken = null, string requestJson = null)
+        protected async UniTask<T> SendChatAsync<T>(string requestUri, CancellationToken? cancellationToken = null, string requestJson = null)
         {
             try
             {
-                requestJson ??= RequestBody.ToJson();
+                requestJson ??= RequestBody.ToJson(false);
                 var responseMessage = await _httpClient.PostAsync(requestUri, new StringContent(requestJson, Encoding.UTF8, "application/json"),
                     cancellationToken ?? CancellationToken.None);
 
@@ -178,15 +180,48 @@ namespace Xiyu.DeepSeekApi
         /// <param name="assistantMessage">助手消息</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>请求结果</returns>
-        public virtual async UniTask<StreamChatResult> SendStreamChatAsync(Action<IEnumerable<StreamChatResult>> onReceiveData, AssistantMessage assistantMessage,
+        public async UniTask<StreamChatResult> SendStreamChatAsync(Action<IEnumerable<StreamChatResult>> onReceiveData, AssistantMessage assistantMessage,
             CancellationToken? cancellationToken = null)
         {
-            if (RequestBody.Messages.Messages[^1].Role != RoleType.Assistant)
+            TryRecordMessage(assistantMessage);
+
+            var result = await SendStreamChatAsync(DeepSeekChatContinuationPrefix, onReceiveData, cancellationToken);
+
+            var prefix = assistantMessage.Content; // RequestBody.Model == ModelType.DeepseekChat ? assistantMessage.Content : string.Empty;
+
+            result = ReplaceResultContent(ref result, prefix);
+            MessageCollector.Messages[^1] =
+                new AssistantMessage(result.GetMessage().Content, assistantMessage.Name, assistantMessage.ReasoningContent, assistantMessage.Prefix);
+            return result;
+        }
+
+        /// <summary>
+        /// <para>对话前缀续写  （流式） （Beta）</para>
+        /// 发送聊天请求，要求 ai 根据当前消息作为前缀续写 （官方要求最后一条消息必须是助手消息）
+        /// </summary>
+        /// <param name="assistantMessage">助手消息</param>
+        /// <param name="cancellationToken">取消令牌</param>
+        /// <returns>请求结果</returns>
+        public async IAsyncEnumerable<StreamChatResult> SendStreamChatAsync(AssistantMessage assistantMessage, CancellationToken? cancellationToken = null)
+        {
+            TryRecordMessage(assistantMessage);
+            StreamChatResult lastStreamResult = null;
+            await foreach (var data in SendStreamChatAsync(DeepSeekChatContinuationPrefix, null, AnalysisSseData, cancellationToken))
             {
-                RequestBody.Messages.Messages.Add(assistantMessage);
+                var streamChatResult = lastStreamResult = (StreamChatResult)data;
+                yield return streamChatResult;
             }
 
-            return await SendStreamChatAsync(DeepSeekChatContinuationPrefix, onReceiveData, cancellationToken);
+
+            var (message, reasoning) = GetCurrentStreamChatMessage();
+
+            var prefix = assistantMessage.Content; // RequestBody.Model == ModelType.DeepseekChat ? assistantMessage.Content : string.Empty;
+
+            lastStreamResult = ReplaceResultContent(ref lastStreamResult, prefix, message);
+            MessageCollector.Messages[^1] =
+                new AssistantMessage(lastStreamResult.GetMessage().Content, assistantMessage.Name, reasoning, assistantMessage.Prefix);
+
+            yield return lastStreamResult;
         }
 
         /// <summary>
@@ -201,9 +236,9 @@ namespace Xiyu.DeepSeekApi
         }
 
 
-        public async IAsyncEnumerable<StreamChatResult> SendStreamChatAsync(string requestUri, CancellationToken? cancellationToken = null)
+        public async IAsyncEnumerable<StreamChatResult> SendStreamChatAsync(CancellationToken? cancellationToken = null)
         {
-            await foreach (var data in SendStreamChatAsync(requestUri, null, AnalysisSseData, cancellationToken))
+            await foreach (var data in SendStreamChatAsync(DeepSeekChatUrl, null, AnalysisSseData, cancellationToken))
             {
                 var streamChatResult = (StreamChatResult)data;
                 yield return streamChatResult;
@@ -254,8 +289,7 @@ namespace Xiyu.DeepSeekApi
             var streamChatResults = new List<StreamChatResult>();
             await SendStreamChatAsync(requestUri, ReceiveData, cancellationToken: cancellationToken);
 
-            var message = _streamChatResults.ToString();
-            var reasoning = _reasoningStringBuilder.ToString();
+            var (message, reasoning) = GetCurrentStreamChatMessage();
 
             var summarize = streamChatResults[^2];
             var msg = new Message(message, reasoning, RoleType.Assistant);
@@ -331,14 +365,14 @@ namespace Xiyu.DeepSeekApi
         protected async UniTask SendStreamChatAsync(string requestUri, Action<byte[]> onReceiveData, ChannelWriter<byte[]> writer = null,
             string jsonContent = null, CancellationToken? cancellationToken = null)
         {
-            using var request = GetRequestMessage(requestUri);
+            using var request = GetRequestMessage(true, requestUri);
 
             _webRequest = new UnityWebRequest(new Uri(_httpClient.BaseAddress, request.RequestUri), request.Method.Method);
             _webRequest.SetRequestHeader("Content-Type", "application/json");
             _webRequest.SetRequestHeader("Authorization", _httpClient.DefaultRequestHeaders.Authorization.ToString());
             // _webRequest.SetRequestHeader("Accept", "stream");
 
-            jsonContent ??= RequestBody.ToJson();
+            jsonContent ??= RequestBody.ToJson(true);
             _webRequest.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonContent));
 
             _webRequest.downloadHandler = new DataStreamingHandler(onReceiveData, writer);
@@ -354,7 +388,7 @@ namespace Xiyu.DeepSeekApi
         }
 
 
-        private HttpRequestMessage GetRequestMessage(string requestUri)
+        private HttpRequestMessage GetRequestMessage(bool stream, string requestUri)
         {
             if (_requestMessagesBuffer.TryGetValue(requestUri, out var requestMessage))
             {
@@ -363,7 +397,7 @@ namespace Xiyu.DeepSeekApi
 
             requestMessage = new HttpRequestMessage(HttpMethod.Post, requestUri)
             {
-                Content = new StringContent(RequestBody.ToJson(), Encoding.UTF8, "application/json")
+                Content = new StringContent(RequestBody.ToJson(stream), Encoding.UTF8, "application/json")
             };
 
             _requestMessagesBuffer.TryAdd(requestUri, requestMessage);
@@ -383,9 +417,9 @@ namespace Xiyu.DeepSeekApi
             return true;
         }
 
-        protected static ChatResult ReplaceResultContent(ref ChatResult chatRequest, string message)
+        protected static ChatResult ReplaceResultContent(ref ChatResult chatRequest, string prefix)
         {
-            var combination = $"{message}{chatRequest.GetMessage().Content}";
+            var combination = $"{prefix}{chatRequest.GetMessage().Content}";
 
             var chatRequestChoices = chatRequest.Choices;
 
@@ -397,9 +431,9 @@ namespace Xiyu.DeepSeekApi
                 chatRequest.Usage);
         }
 
-        protected static StreamChatResult ReplaceResultContent(ref StreamChatResult chatRequest, string message)
+        protected static StreamChatResult ReplaceResultContent(ref StreamChatResult chatRequest, string prefix, string content = null)
         {
-            var combination = $"{message}{chatRequest.GetMessage().Content}";
+            var combination = $"{prefix}{content ?? chatRequest.GetMessage().Content}";
 
             var chatRequestChoices = chatRequest.Choices;
 

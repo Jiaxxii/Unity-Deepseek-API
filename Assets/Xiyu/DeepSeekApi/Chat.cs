@@ -8,24 +8,13 @@ using Xiyu.DeepSeekApi.Request;
 using Xiyu.DeepSeekApi.Response.FIM;
 using Xiyu.DeepSeekApi.Response.Stream;
 
-namespace Xiyu.DeepSeekApi.ChatHandler
+namespace Xiyu.DeepSeekApi
 {
     /// <summary>
     /// deepseek-chat 模型 请求器
     /// </summary>
     public sealed class Chat : ChatProcessor
     {
-        /// <summary>
-        /// 初始化 Chat 处理器
-        /// </summary>
-        /// <param name="apiKey">你的 api key <para>（这里注册账号：https://platform.deepseek.com/usage）</para></param>
-        /// <param name="requestBody">请求体</param>
-        /// <param name="messageCollector">消息处理器</param>
-        public Chat(string apiKey, IRequestBody requestBody, MessageCollector messageCollector = null) : base(apiKey, requestBody, messageCollector)
-        {
-        }
-
-
         /// <summary>
         /// 初始化 Chat 处理器
         /// </summary>
@@ -47,7 +36,7 @@ namespace Xiyu.DeepSeekApi.ChatHandler
         /// <param name="fimFimRequest">FIM 请求体</param>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>请求结果</returns>
-        public async UniTask<FimResult> SendChatAsync(Request.FIM.FimRequest fimFimRequest, CancellationToken? cancellationToken = null)
+        public async UniTask<FimResult> SendChatAsync(FimRequest fimFimRequest, CancellationToken? cancellationToken = null)
         {
             var result = await base.SendChatAsync<FimResult>("/beta/completions", cancellationToken, requestJson: fimFimRequest.ToJson());
 
@@ -57,7 +46,7 @@ namespace Xiyu.DeepSeekApi.ChatHandler
         }
 
 
-        public async IAsyncEnumerable<StreamFImResult> SendChatStreamAsync(Request.FIM.FimRequest fimFimRequest, CancellationToken? cancellationToken = null)
+        public async IAsyncEnumerable<StreamFImResult> SendChatStreamAsync(FimRequest fimFimRequest, CancellationToken? cancellationToken = null)
         {
             _fimRequestStringBuilder.Clear();
 
@@ -71,7 +60,7 @@ namespace Xiyu.DeepSeekApi.ChatHandler
         }
 
 
-        public async UniTask<StreamFImResult> SendChatStreamAsync(Request.FIM.FimRequest fimFimRequest, Action<IEnumerable<StreamFImResult>> onReceiveData,
+        public async UniTask<StreamFImResult> SendChatStreamAsync(FimRequest fimFimRequest, Action<IEnumerable<StreamFImResult>> onReceiveData,
             CancellationToken? cancellationToken = null)
         {
             _fimRequestStringBuilder.Clear();
