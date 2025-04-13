@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
@@ -10,20 +11,11 @@ namespace Xiyu.DeepSeekApi.Request
     /// </summary>
     public class ReasonerRequest : IRequestBody
     {
-        public ReasonerRequest(params IMessageUnit[] messageUnits)
+        public ReasonerRequest(IMessageUnits messageUnit)
         {
-            Messages = new MessageCollector(messageUnits);
+            Messages = messageUnit ?? throw new NullReferenceException("The message unit is null.");
         }
 
-        public ReasonerRequest(IMessageUnit messageUnit)
-        {
-            Messages = new MessageCollector(messageUnit);
-        }
-
-        public ReasonerRequest()
-        {
-            Messages = new MessageCollector();
-        }
 
         public IMessageUnits Messages { get; set; }
         public ModelType Model => ModelType.DeepseekReasoner;

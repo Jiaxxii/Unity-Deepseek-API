@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using Newtonsoft.Json.Linq;
@@ -10,25 +11,15 @@ namespace Xiyu.DeepSeekApi.Request
     /// </summary>
     public class ChatRequest : IRequestBody
     {
-        public ChatRequest(params IMessageUnit[] messageUnits)
+        public ChatRequest(IMessageUnits messageUnit)
         {
-            Messages = new MessageCollector(messageUnits);
-        }
-
-        public ChatRequest(IMessageUnit messageUnit)
-        {
-            Messages = new MessageCollector(messageUnit);
-        }
-
-        public ChatRequest()
-        {
-            Messages = new MessageCollector();
+            Messages = messageUnit ?? throw new NullReferenceException("messageUnit");
         }
 
 
         #region 属性
 
-        public IMessageUnits Messages { get; set; }
+        public IMessageUnits Messages { get; }
 
 
         [JetBrains.Annotations.UsedImplicitly] public ModelType Model => ModelType.DeepseekChat;

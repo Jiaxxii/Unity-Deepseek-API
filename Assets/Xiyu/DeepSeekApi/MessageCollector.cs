@@ -27,11 +27,27 @@ namespace Xiyu.DeepSeekApi
         /// 初始化消息收集器
         /// </summary>
         /// <param name="messages">可添加的类型有：<see cref="SystemMessage"/> <see cref="UserMessage"/> <see cref="AssistantMessage"/></param>
+        [Obsolete("使用更加具体的类型")]
         public MessageCollector(IMessageUnit messages)
         {
             Messages.Add(messages);
         }
 
+        /// <summary>
+        /// 初始化消息收集器
+        /// </summary>
+        public MessageCollector(SystemMessage message)
+        {
+            Messages.Add(message);
+        }
+
+        /// <summary>
+        /// 初始化消息收集器
+        /// </summary>
+        public MessageCollector(UserMessage message)
+        {
+            Messages.Add(message);
+        }
 
         /// <summary>
         /// 所有消息的集合
@@ -81,11 +97,16 @@ namespace Xiyu.DeepSeekApi
             if (Messages == null || Messages.Count == 0)
                 throw new NullReferenceException("没有任何消息！");
 
-            var last = Messages.Last();
+            if (Messages[0].Role == RoleType.Assistant)
+            {
+                throw new ArgumentException("消息的开头不能是助手！", nameof(Messages));
+            }
+            
+            var last = Messages[^1];
             if (last.Role == RoleType.User || (last.Role == RoleType.Assistant && ((AssistantMessage)last).Prefix))
                 return;
 
-            throw new ArgumentException("当最后一条消息是助时，Prefix必须为True", nameof(last));
+            throw new ArgumentException("当最后一条消息是助时，Prefix必须为True", nameof(Messages));
         }
 
         /// <summary>

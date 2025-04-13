@@ -34,7 +34,7 @@ namespace Xiyu.DeepSeekApi
             _httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             RequestBody = requestBody;
-            MessageCollector = (MessageCollector)requestBody.Messages;
+            MessageCollector = requestBody.Messages;
         }
 
         protected const string DeepSeekChatUrl = "/chat/completions";
@@ -55,7 +55,7 @@ namespace Xiyu.DeepSeekApi
         /// 消息请求体，包含了请求的消息内容
         /// </summary>
         [JetBrains.Annotations.PublicAPI]
-        public IRequestBody RequestBody { get; }
+        public IRequestBody RequestBody { get; set; }
 
         /// <summary>
         /// 超时时间，默认为 30 秒
@@ -66,7 +66,7 @@ namespace Xiyu.DeepSeekApi
         /// <summary>
         /// 消息收集器 （如果一开始时不提供 会在初始化时创建）
         /// </summary>
-        public MessageCollector MessageCollector { get; }
+        public IMessageUnits MessageCollector { get; }
 
 
         public (string message, string reasoning) GetCurrentChatMessage()
@@ -238,11 +238,19 @@ namespace Xiyu.DeepSeekApi
 
         public async IAsyncEnumerable<StreamChatResult> SendStreamChatAsync(CancellationToken? cancellationToken = null)
         {
+            StreamChatResult last = null;
             await foreach (var data in SendStreamChatAsync(DeepSeekChatUrl, null, AnalysisSseData, cancellationToken))
             {
-                var streamChatResult = (StreamChatResult)data;
+                var streamChatResult = last = (StreamChatResult)data;
                 yield return streamChatResult;
             }
+
+            var (message, reasoning) = GetCurrentStreamChatMessage();
+
+            last = ReplaceResultContent(ref last, string.Empty, message);
+            TryRecordMessage(new AssistantMessage(last.GetMessage().Content, string.Empty, reasoning));
+
+            yield return last;
         }
 
         protected async IAsyncEnumerable<StreamResult<T>> SendStreamChatAsync<T>(
