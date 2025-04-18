@@ -1,0 +1,22 @@
+{
+    "name": "DeepSeekAPI",
+    "rootNamespace": "Xiyu",
+    "references": [
+        "GUID:f51ebe6a0ceec4240a699833d6309b23",
+        "GUID:d528c8c98d269ca44a06cd9624a03945",
+        "GUID:5c01796d064528144a599661eaab93a6",
+        "GUID:dc47925d1a5fa2946bdd37746b2b5d48"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll",
+        "JetBrains.Rider.PathLocator.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
