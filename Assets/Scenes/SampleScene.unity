@@ -190,7 +190,7 @@ GameObject:
   - component: {fileID: 244946659}
   - component: {fileID: 244946658}
   m_Layer: 0
-  m_Name: GameObject
+  m_Name: Manager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -208,13 +208,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7fc87e07e4194fadb3b9a15bf312881c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  apiKey: sk-you_api
+  apiKey: sk-you_api_key
   outputText: {fileID: 1336660047}
   inputField: {fileID: 2044459956}
+  contentRectTransform: {fileID: 2006915285}
   collector:
     readOnlyMessage: []
   requestBody:
-    model: 1
+    model: 2
     maxToken: 512
     stop: []
     stream: 0

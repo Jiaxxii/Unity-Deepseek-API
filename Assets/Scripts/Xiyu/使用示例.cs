@@ -16,6 +16,7 @@ namespace Xiyu
         [SerializeField] private string apiKey;
         [SerializeField] private TextMeshProUGUI outputText;
         [SerializeField] private TMP_InputField inputField;
+        [SerializeField] private RectTransform contentRectTransform;
 
         [SerializeField] private MessagesCollector collector;
 
@@ -28,7 +29,7 @@ namespace Xiyu
         private void Awake()
         {
             collector = new MessagesCollector(
-                new SystemMessage("你叫“西”，是一个普普通通的人类，用户是你的朋友“雨”。")
+                new SystemMessage("你叫“西”，是一个普普通通的人类，用户是你的朋友“雨”（不要输出unicode表情）。")
             );
 
             requestBody.MessagesCollector = collector;
@@ -73,7 +74,17 @@ namespace Xiyu
                     }
 
                     FindObjectOfType<Loading>().IsRun = false;
-                    outputText.text += $"\r\n<color=#58616e>消耗Token：</color><color=#60AEEA>{_lastChatCompletion.Usage.TotalTokens}</color>";
+
+                    PrintText(
+                        $"\n\n<color=#58616e>消耗Token：</color><color=#60AEEA>{_lastChatCompletion.Usage.TotalTokens}</color>");
+
+                    var message = _lastChatCompletion.GetMessage();
+                    if (!string.IsNullOrEmpty(message.ReasoningContent))
+                    {
+                        Debug.Log($"思考：<color=#df6b67>{message.ReasoningContent}</color>");
+                    }
+
+                    Debug.Log($"回复：<color=#61AFEF>{message.Content}</color>");
                     inputField.interactable = true;
                 }
             }
@@ -92,10 +103,11 @@ namespace Xiyu
             collector.AppendUserMessage(input);
             collector.CheckAndThrow();
 
-            Debug.Log($"<color=#ab77dc>ChatComplete</color>请求：{input}");
-            outputText.text = string.Empty;
+            Debug.Log($"<color=#ab77dc>ChatComplete</color>请求：<color=#61AFEF>{input}</color>");
+            PrintText(string.Empty, true);
 
             var reasoningBegin = true;
+            var reasoningEnd = false;
             await foreach (var data in _deepseekChat.ChatCompletionStreamAsync(onReport: report => _lastChatCompletion = report))
             {
                 if (!data.HasCompleteMsg())
@@ -108,17 +120,26 @@ namespace Xiyu
                 if (!string.IsNullOrEmpty(message.ReasoningContent) && string.IsNullOrEmpty(message.Content) && reasoningBegin)
                 {
                     reasoningBegin = false;
-                    outputText.text += $"<color=#5f8090>{message.ReasoningContent}";
+                    PrintText($"<color=#df6b67>{message.ReasoningContent}");
                 }
-                else if (string.IsNullOrEmpty(message.ReasoningContent) && !string.IsNullOrEmpty(message.Content) && !reasoningBegin)
+                else if (!string.IsNullOrEmpty(message.ReasoningContent) && !reasoningBegin)
                 {
-                    outputText.text += $"{message.ReasoningContent}</color>";
+                    PrintText(message.ReasoningContent);
+                    continue;
+                }
+
+                if (string.IsNullOrEmpty(message.ReasoningContent) && !string.IsNullOrEmpty(message.Content) && !reasoningEnd)
+                {
+                    reasoningEnd = true;
+                    PrintText($"</color>\n\n<b>{message.Content}");
                 }
                 else
                 {
-                    outputText.text += message.Content;
+                    PrintText(message.Content);
                 }
             }
+
+            PrintText("<\b>");
         }
 
         private async UniTask PrefixChatCompletionAsync(string input, string prefix)
@@ -126,17 +147,33 @@ namespace Xiyu
             collector.AppendUserMessage(input);
             collector.CheckAndThrow();
 
-            Debug.Log($"<color=#ab77dc>前缀续写</color>请求：{input}");
+            Debug.Log($"<color=#ab77dc>前缀续写</color>请求：<color=#61AFEF>{input}</color>");
 
             var assistantPrefixMessage = new AssistantPrefixMessage(prefix);
-            outputText.text = prefix;
+            PrintText(prefix, true);
 
             await foreach (var data in _deepseekChat.ChatCompletionStreamAsync(assistantPrefixMessage, onReport: report => _lastChatCompletion = report))
             {
                 if (!data.HasCompleteMsg()) continue;
 
                 // 前缀续写没有思考内容
-                outputText.text += data.GetMessage().Content;
+                PrintText(data.GetMessage().Content);
+            }
+        }
+
+
+        private void PrintText(string text, bool overrider = false)
+        {
+            if (overrider)
+            {
+                outputText.text = text;
+            }
+            else outputText.text += text;
+
+            if (contentRectTransform.sizeDelta.y < outputText.rectTransform.sizeDelta.y)
+            {
+                const float additional = 300;
+                contentRectTransform.sizeDelta = new Vector2(contentRectTransform.sizeDelta.x, outputText.rectTransform.sizeDelta.y + additional);
             }
         }
 
