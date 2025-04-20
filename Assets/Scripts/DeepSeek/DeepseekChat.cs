@@ -12,7 +12,6 @@ using Xiyu.DeepSeek.Responses;
 using Xiyu.DeepSeek.Responses.Expand;
 using Xiyu.DeepSeek.Responses.FimResult;
 using Xiyu.DeepSeek.Responses.ToolResult;
-using Random = UnityEngine.Random;
 
 namespace Xiyu.DeepSeek
 {
@@ -21,14 +20,26 @@ namespace Xiyu.DeepSeek
         private const string FimRequestUrl = "/completions";
         private readonly StringBuilder _contentBuilder = new();
 
-        private readonly Dictionary<string, Func<Function, UniTask<string>>> _tools = new()
-        {
-            { "get_weather", _ => UniTask.FromResult(Random.Range(24, 32).ToString()) }
-        };
+        private readonly Dictionary<string, Func<Function, UniTask<string>>> _tools = new();
 
-
-        public DeepseekChat(string apiKey, ChatMessageRequest messageRequest) : base(apiKey, messageRequest)
+        public DeepseekChat(string apiKey, ChatMessageRequest messageRequest) : base(apiKey,
+            messageRequest)
         {
+        }
+
+        public DeepseekChat(string apiKey, ChatMessageRequest messageRequest, KeyValuePair<string, Func<Function, UniTask<string>>> toolFunction) : base(apiKey,
+            messageRequest)
+        {
+            _tools.Add(toolFunction.Key, toolFunction.Value);
+        }
+
+        public DeepseekChat(string apiKey, ChatMessageRequest messageRequest, params KeyValuePair<string, Func<Function, UniTask<string>>>[] toolFunctions) : base(apiKey,
+            messageRequest)
+        {
+            foreach (var (functionName, function) in toolFunctions)
+            {
+                _tools.Add(functionName, function);
+            }
         }
 
         protected DeepseekChat(string apiKey, MessageRequest messageRequest) : base(apiKey, messageRequest)
@@ -247,6 +258,21 @@ namespace Xiyu.DeepSeek
 
                 onReport?.Invoke(secondChatCompletion.Value.Completion(string.Empty, fistChatCompletion.Value.Usage));
             }).WithCancellation(cancellationToken);
+        }
+
+        #endregion
+
+
+        #region 添加定义的 FunctonCall
+
+        public void AddFunction(KeyValuePair<string, Func<Function, UniTask<string>>> function)
+        {
+            _tools.Add(function.Key, function.Value);
+        }
+
+        public bool TryAddFunction(KeyValuePair<string, Func<Function, UniTask<string>>> function)
+        {
+            return _tools.TryAdd(function.Key, function.Value);
         }
 
         #endregion

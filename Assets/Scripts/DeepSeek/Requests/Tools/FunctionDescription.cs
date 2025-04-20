@@ -2,7 +2,7 @@
 
 namespace Xiyu.DeepSeek.Requests.Tools
 {
-    public class Function
+    public class FunctionDescription
     {
         public string Name { get; set; }
         public string Description { get; set; }

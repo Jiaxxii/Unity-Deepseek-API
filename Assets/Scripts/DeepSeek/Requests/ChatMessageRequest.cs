@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 using Xiyu.DeepSeek.Requests.CommonRequestDataInterface;
+using Xiyu.DeepSeek.Requests.Tools;
 
 namespace Xiyu.DeepSeek.Requests
 {
@@ -19,7 +21,8 @@ namespace Xiyu.DeepSeek.Requests
         private const string KeyTopP = "top_p";
         private const string KeyLogprobs = "logprobs";
         private const string KeyTopLogprobs = "top_logprobs";
-
+        private const string KeyTools = "tools";
+        private const string KeyToolChoice = "tool_choice";
 
         [SerializeField] [Range(-2F, 2F)] private float frequencyPenalty;
 
@@ -58,7 +61,7 @@ namespace Xiyu.DeepSeek.Requests
         }
 
 
-        [SerializeField] [Range(0F, 1F)] private float topP = 1;
+        [SerializeField] [Range(0.1F, 1F)] private float topP = 1;
 
         /// <summary>
         /// 作为调节采样温度的替代方案，模型会考虑前 top_p 概率的 token 的结果。
@@ -95,6 +98,24 @@ namespace Xiyu.DeepSeek.Requests
             set => logprobs = value;
         }
 
+        /// <summary>
+        /// 模型可能会调用的 tool 的列表。目前，仅支持 function 作为工具。
+        /// 使用此参数来提供以 JSON 作为输入参数的 function 列表。最多支持 128 个 function。
+        /// </summary>
+        public IList<Tool<FunctionDescription>> Tools { get; set; }
+
+
+        [SerializeField] private ToolChoice toolChoice;
+
+        /// <summary>
+        /// 控制模型调用 tool 的行为。
+        /// </summary>
+        public ToolChoice ToolChoice
+        {
+            get => toolChoice;
+            set => toolChoice = value;
+        }
+
 
         public override JObject SerializeParameter(JObject instance = null, bool overwrite = false)
         {
@@ -123,7 +144,7 @@ namespace Xiyu.DeepSeek.Requests
             {
                 jObject.Remove(KeyTopP);
             }
-            else jObject.Add(KeyTopP, Mathf.Clamp(topP, 0, 1));
+            else jObject.Add(KeyTopP, Mathf.Clamp(topP, 0.1F, 1));
 
 
             if (logprobs == null || logprobs.Ignore || logprobs.Logprobs == 0)
@@ -136,6 +157,51 @@ namespace Xiyu.DeepSeek.Requests
                 jObject.Add(KeyLogprobs, true);
                 jObject.Add(KeyTopLogprobs, Mathf.Clamp(logprobs.Logprobs, 0, 20));
             }
+
+            if (Tools.Count == 0 && toolChoice is { CallType: CallType.Required })
+            {
+                throw new ArgumentException("你指定了模型必须调用工具，但是你没有定义任何工具！");
+            }
+
+            if (toolChoice != null && !string.IsNullOrWhiteSpace(toolChoice.FunctionName))
+            {
+                var token = new JObject
+                {
+                    ["type"] = "function",
+                    ["function"] = new JObject
+                    {
+                        ["name"] = toolChoice.FunctionName,
+                    }
+                };
+                jObject.Add(KeyToolChoice, token);
+            }
+            else
+            {
+                if (toolChoice == null)
+                {
+                    jObject.Remove(KeyToolChoice);
+                    jObject.Add(KeyTools, JArray.FromObject(Tools, JsonSerializer));
+                    return jObject;
+                }
+
+                if (toolChoice.CallType == CallType.None)
+                {
+                    jObject.Remove(KeyToolChoice);
+                    jObject.Remove(KeyTools);
+                    return jObject;
+                }
+
+                if (toolChoice.CallType == CallType.Auto)
+                {
+                    jObject.Remove(KeyToolChoice);
+                }
+                else
+                {
+                    jObject.Add(KeyToolChoice, toolChoice.CallType.ToString().ToLower());
+                }
+            }
+
+            jObject.Add(KeyTools, JArray.FromObject(Tools, JsonSerializer));
 
 
             return jObject;

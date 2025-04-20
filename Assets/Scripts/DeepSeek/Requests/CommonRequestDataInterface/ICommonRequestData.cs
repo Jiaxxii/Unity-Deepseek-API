@@ -37,6 +37,6 @@ namespace Xiyu.DeepSeek.Requests.CommonRequestDataInterface
         string SerializeRequestJson(JObject instance = null, Formatting formatting = Formatting.None, bool overwrite = false);
 
 
-        void SetStreamOptions(bool openStream);
+        void SetStreamOptions(bool openStream, bool includeUsage = false);
     }
 }

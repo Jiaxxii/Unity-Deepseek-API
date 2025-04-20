@@ -20,8 +20,7 @@ namespace Xiyu.DeepSeek.Responses
         bool IsValid();
     }
 
-    [DebuggerDisplay("Role：{Choices[0].Message.Role} Content：{Choices[0].Message.Content} 思考：{Choices[0].Message.ReasoningContent}")]
-    [DebuggerDisplay("Usage：{Usage}")]
+    [DebuggerDisplay("[{CurrentMessage.Role}] -token:{Usage.TotalTokens}- {CurrentMessage.Content} （{CurrentMessage.Content}）")]
     public readonly struct ChatCompletion : IValid
     {
         [JsonConstructor]
@@ -45,6 +44,9 @@ namespace Xiyu.DeepSeek.Responses
             }
         };
 
+#if UNITY_EDITOR
+        [JsonIgnore] public Message CurrentMessage => Choices[0].Message;
+#endif
 
         /// <summary>
         /// 该对话的唯一标识符。

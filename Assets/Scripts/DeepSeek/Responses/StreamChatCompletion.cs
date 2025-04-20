@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -7,6 +8,7 @@ using Xiyu.DeepSeek.Responses.ToolResult;
 
 namespace Xiyu.DeepSeek.Responses
 {
+    [DebuggerDisplay("[{CurrentDelta.Role}] -token:{Usage.Value.TotalTokens}- {CurrentDelta.Content} （{CurrentDelta.Content}）")]
     public readonly struct StreamChatCompletion : IValid
     {
         [JsonConstructor]
@@ -23,6 +25,11 @@ namespace Xiyu.DeepSeek.Responses
         }
 
         public static JsonSerializerSettings DeSerializerSettings => ChatCompletion.DeSerializerSettings;
+
+
+#if UNITY_EDITOR
+        public Delta CurrentDelta => Choices[0].Delta;
+#endif
 
         /// <summary>
         /// 该对话的唯一标识符。

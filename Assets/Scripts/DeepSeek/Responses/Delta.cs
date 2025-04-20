@@ -1,12 +1,14 @@
 ﻿using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using Newtonsoft.Json;
 using Xiyu.DeepSeek.Messages;
 using Xiyu.DeepSeek.Responses.ToolResult;
 
 namespace Xiyu.DeepSeek.Responses
 {
-    [DebuggerDisplay("Role：{Role} Content：{Content} 思考：{ReasoningContent}")]
+    [DebuggerDisplay("[{Role}] msg-{Content} ({ReasoningContent})")]
+    [DebuggerDisplay("tool({ToolCalls.Count})：[{ToolsFunctionNameDisplay()}]")]
     public readonly struct Delta
     {
         [JsonConstructor]
@@ -32,10 +34,14 @@ namespace Xiyu.DeepSeek.Responses
         /// 生成这条消息的角色。
         /// </summary>
         public Role Role { get; }
-        
+
         /// <summary>
         /// 模型生成的 tool 调用，例如 function 调用。
         /// </summary>
         public IList<Tool> ToolCalls { get; }
+
+#if UNITY_EDITOR
+        public string ToolsFunctionNameDisplay() => string.Join(',', ToolCalls.Select(t => t.Function.Name));
+#endif
     }
 }

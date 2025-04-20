@@ -12,6 +12,7 @@ namespace Xiyu.DeepSeek.Messages
     //     public string SerializeJson()
     // }
     [System.Serializable]
+    [DebuggerDisplay("role:{Role} content:{Content}")]
     public class Message : IMessage
     {
         protected Message(string content, string name = null)

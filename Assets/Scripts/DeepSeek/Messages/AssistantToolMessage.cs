@@ -1,9 +1,11 @@
 ﻿using System.Collections.Generic;
+using System.Diagnostics;
 using Newtonsoft.Json;
 using Xiyu.DeepSeek.Responses.ToolResult;
 
 namespace Xiyu.DeepSeek.Messages
 {
+    [DebuggerDisplay("Role：{Role} Tool：{ToolCalls.Count}")]
     public class AssistantToolMessage : IMessage
     {
         public AssistantToolMessage(IList<Tool> toolCalls, ISerializer serializer = null)

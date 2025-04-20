@@ -1,7 +1,9 @@
-﻿using Newtonsoft.Json;
+﻿using System.Diagnostics;
+using Newtonsoft.Json;
 
 namespace Xiyu.DeepSeek.Messages
 {
+    [DebuggerDisplay("role:{Role} content:{Content} tool id:{ToolCallId}")]
     public class ToolMessage : IMessage
     {
         public ToolMessage(string content, string toolCallId, ISerializer serializer = null)

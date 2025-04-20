@@ -127,7 +127,7 @@ namespace Xiyu.DeepSeek.Requests
         public JArray MessageCombination()
         {
             // 剔除掉用不到的工具消息
-            if (Messages.Count >= 2 && Messages[^1].Role == Role.Assistant && Messages[^2].Role == Role.Tool)
+            if (Messages.Count >= 2 && Messages[^1].Role == Role.Assistant || Messages[^1].Role == Role.User)
             {
                 return new JArray(Messages
                     .Where(m =>

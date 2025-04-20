@@ -14,7 +14,6 @@ namespace Xiyu
 {
     public class 使用示例 : MonoBehaviour
     {
-        [SerializeField] private string apiKey;
         [SerializeField] private TextMeshProUGUI outputText;
         [SerializeField] private ScrollRect scrollRect;
         [SerializeField] private TMP_InputField inputField;
@@ -41,7 +40,7 @@ namespace Xiyu
 
             requestBody.MessagesCollector = collector;
 
-            _deepseekChat = new DeepseekChat(apiKey, requestBody);
+            _deepseekChat = new DeepseekChat(Resources.Load<TextAsset>("DEEPSEEK_API_KEY").text, requestBody);
         }
 
         private async void Start()

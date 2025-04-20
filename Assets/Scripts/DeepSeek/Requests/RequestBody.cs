@@ -82,7 +82,7 @@ namespace Xiyu.DeepSeek.Requests
             set => stop = value.ToArray();
         }
 
-        [SerializeField] private bool stream;
+        // [SerializeField] private bool stream;
 
         // /// <summary>
         // /// 如果设置为 True，将会以 SSE（server-sent events）的形式以流式发送消息增量。消息流以 data: [DONE] 结尾。
@@ -93,28 +93,12 @@ namespace Xiyu.DeepSeek.Requests
         //     set => stream = value;
         // }
 
-        [SerializeField] private StreamOptions streamOptions;
+        // [SerializeField] private StreamOptions streamOptions;
 
         /// <summary>
         /// 流式输出相关选项。只有在 stream 参数为 true 时，才可设置此参数。
         /// </summary>
-        public StreamOptions StreamOptions
-        {
-            get => streamOptions;
-            set
-            {
-                if (value == null)
-                {
-                    stream = false;
-                    streamOptions = null;
-                }
-                else
-                {
-                    stream = true;
-                    streamOptions = value;
-                }
-            }
-        }
+        public StreamOptions StreamOptions { get; set; }
 
 
         public virtual string SerializeRequestJson(JObject instance = null, Formatting formatting = Formatting.None, bool overwrite = false)
@@ -187,16 +171,16 @@ namespace Xiyu.DeepSeek.Requests
 
         protected void AppendStreamInJObject(JObject instance, bool overwrite)
         {
-            if (stream)
+            if (StreamOptions != null)
             {
                 AddToken(instance, KeyStream, overwrite,
                     () => true
                 );
 
-                if (streamOptions.IncludeUsage)
+                if (StreamOptions.IncludeUsage)
                 {
                     AddToken(instance, KeyStreamOptions, overwrite,
-                        () => JObject.FromObject(streamOptions, JsonSerializer)
+                        () => JObject.FromObject(StreamOptions, JsonSerializer)
                     );
                 }
                 else instance.Remove(KeyStreamOptions);
@@ -219,19 +203,23 @@ namespace Xiyu.DeepSeek.Requests
             else instance.Add(key, value());
         }
 
-        public void SetStreamOptions(bool openStream)
+        public void SetStreamOptions(bool openStream, bool includeUsage = false)
         {
             if (!openStream)
             {
-                stream = false;
-                streamOptions = null;
+                StreamOptions = null;
                 return;
             }
 
-            if (stream) return;
+            if (StreamOptions != null)
+            {
+                if (StreamOptions.IncludeUsage == includeUsage) return;
 
-            stream = true;
-            streamOptions = new StreamOptions();
+                StreamOptions.IncludeUsage = includeUsage;
+                return;
+            }
+
+            StreamOptions = new StreamOptions(includeUsage);
         }
     }
 }
