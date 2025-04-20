@@ -5,12 +5,15 @@ namespace Xiyu.DeepSeek.Responses.ToolResult
     public readonly struct Tool
     {
         [JsonConstructor]
-        public Tool(string id, string type, Function function)
+        public Tool(int index, string id, string type, Function function)
         {
             ID = id;
             Type = type;
             Function = function;
+            Index = index;
         }
+
+        public int Index { get; }
 
         /// <summary>
         /// tool 调用的 ID。

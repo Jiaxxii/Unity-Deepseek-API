@@ -1,38 +1,35 @@
 ﻿using System;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Xiyu.DeepSeek.Requests.Tools
 {
     [Serializable]
     public class ToolChoice
     {
-        public ToolChoice(ChatCompletionToolChoice chatCompletionToolChoice)
+        public ToolChoice(CallType callType, string functionName = null)
         {
-            this.chatCompletionToolChoice = chatCompletionToolChoice;
+            this.callType = callType;
+            this.functionName = functionName;
         }
 
-        public ToolChoice(ChatCompletionNameToolChoice chatCompletionNameToolChoice)
-        {
-            this.chatCompletionNameToolChoice = chatCompletionNameToolChoice;
-        }
-
-        [SerializeField] private ChatCompletionToolChoice chatCompletionToolChoice;
-        [SerializeField] private ChatCompletionNameToolChoice chatCompletionNameToolChoice;
+        [SerializeField] private CallType callType;
+        [SerializeField] private string functionName;
 
         /// <summary>
         /// 当没有 tool 时，默认值为 none。如果有 tool 存在，默认值为 auto。
         /// </summary>
-        public ChatCompletionToolChoice ChatCompletionToolChoice
+        public CallType CallType
         {
-            get => chatCompletionToolChoice;
-            set => chatCompletionToolChoice = value;
+            get => callType;
+            set => callType = value;
         }
 
 
-        public ChatCompletionNameToolChoice ChatCompletionNameToolChoice
+        public string FunctionName
         {
-            get => chatCompletionNameToolChoice;
-            set => chatCompletionNameToolChoice = value;
+            get => functionName;
+            set => functionName = value;
         }
     }
 }

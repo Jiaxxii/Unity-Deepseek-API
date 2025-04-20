@@ -8,7 +8,7 @@ namespace Xiyu.DeepSeek.Responses
     /// 角色类型
     /// </summary>
     [JsonConverter(typeof(StringEnumConverter))]
-    public enum RoleType
+    public enum RoleTypea
     {
         None,
 

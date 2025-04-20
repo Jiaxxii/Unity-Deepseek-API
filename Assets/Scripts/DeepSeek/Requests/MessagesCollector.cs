@@ -60,7 +60,7 @@ namespace Xiyu.DeepSeek.Requests
 
         public void Append(IMessage message)
         {
-            if (string.IsNullOrEmpty(message.Content))
+            if (message is not AssistantToolMessage && string.IsNullOrEmpty(message.Content))
             {
                 throw new ArgumentException("The message content is empty.", nameof(message));
             }
@@ -73,6 +73,9 @@ namespace Xiyu.DeepSeek.Requests
                     break;
                 case AssistantMessage assistantMessage:
                     readOnlyMessage.Add(new AssistantMessage(assistantMessage.Content));
+                    break;
+                case AssistantToolMessage assistantToolMessage:
+                    readOnlyMessage.Add(new Message(Role.Tool, JsonConvert.SerializeObject(assistantToolMessage.ToolCalls)));
                     break;
                 default:
                     readOnlyMessage.Add((Message)message);
@@ -123,6 +126,31 @@ namespace Xiyu.DeepSeek.Requests
 
         public JArray MessageCombination()
         {
+            // 剔除掉用不到的工具消息
+            if (Messages.Count >= 2 && Messages[^1].Role == Role.Assistant && Messages[^2].Role == Role.Tool)
+            {
+                return new JArray(Messages
+                    .Where(m =>
+                    {
+                        switch (m.Role)
+                        {
+                            case Role.Tool:
+                                Debug.Log($"<color=#df6b68>剔除工具消息：{m.Content}</color>");
+                                return false;
+
+                            case Role.Assistant when m is AssistantToolMessage assistantToolMessage:
+                                Debug.Log($"<color=#df6b68>剔除助手工具消息：{JsonConvert.SerializeObject(assistantToolMessage.ToolCalls)}</color>");
+                                return false;
+
+                            case Role.System:
+                            case Role.User:
+                            default:
+                                return true;
+                        }
+                    })
+                    .Select(m => m.Serializer.SerializeJson(m)));
+            }
+
             return new JArray(Messages.Select(m => m.Serializer.SerializeJson(m)));
         }
     }

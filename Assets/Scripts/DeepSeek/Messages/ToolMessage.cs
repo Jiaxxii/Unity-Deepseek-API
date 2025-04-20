@@ -1,4 +1,6 @@
-﻿namespace Xiyu.DeepSeek.Messages
+﻿using Newtonsoft.Json;
+
+namespace Xiyu.DeepSeek.Messages
 {
     public class ToolMessage : IMessage
     {
@@ -12,7 +14,7 @@
         public Role Role => Role.Tool;
         public string Content { get; set; }
 
-        public ISerializer Serializer { get; }
+        [JsonIgnore] public ISerializer Serializer { get; }
         public string ToolCallId { get; set; }
     }
 }

@@ -30,6 +30,9 @@ namespace Xiyu.DeepSeek.Responses
         /// 系统推理资源不足，生成被打断。
         /// </summary>
         [EnumMember(Value = "insufficient_system_resources")]
-        InsufficientSystemResources
+        InsufficientSystemResources,
+        
+        [EnumMember(Value = "tool_calls")]
+        ToolCalls
     }
 }

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
@@ -8,10 +10,12 @@ using Cysharp.Threading.Tasks;
 using Cysharp.Threading.Tasks.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 using Xiyu.DeepSeek.Messages;
 using Xiyu.DeepSeek.Requests;
 using Xiyu.DeepSeek.Responses;
 using Xiyu.DeepSeek.Responses.Expand;
+using Xiyu.DeepSeek.Responses.ToolResult;
 
 namespace Xiyu.DeepSeek
 {
@@ -25,18 +29,22 @@ namespace Xiyu.DeepSeek
 
         public static void Dispose() => MainClient.Dispose();
 
+        private static readonly List<Tool> ToolsEmpty = new();
+
 
         private readonly MediaTypeWithQualityHeaderValue _mediaTypeByJson = new("application/json");
         private readonly MediaTypeWithQualityHeaderValue _mediaTypeByStream = new("text/event-stream");
 
         private const string DeepSeekBaseUrl = "https://api.deepseek.com";
-        private const string RequestUrlByChat = "/chat/completions";
+        protected const string RequestUrlByChat = "/chat/completions";
 
 
         private readonly AuthenticationHeaderValue _authHeader;
 
         private readonly StringBuilder _contentBuilder = new();
         private readonly StringBuilder _reasoningContentBuilder = new();
+
+        private readonly List<(string id, int index, string type, string funcName, StringBuilder arguments)> _toolsInfos = new();
 
         public ChatProcessor(string apiKey, MessageRequest messageRequest)
         {
@@ -140,7 +148,7 @@ namespace Xiyu.DeepSeek
         /// </summary>
         /// <param name="cancellationToken">取消令牌</param>
         /// <returns>对话补全内容</returns>
-        public UniTask<ChatCompletion> ChatCompletionAsync(CancellationToken cancellationToken = default)
+        public virtual UniTask<ChatCompletion> ChatCompletionAsync(CancellationToken cancellationToken = default)
         {
             MessageRequest.SetStreamOptions(false);
             var requestJson = MessageRequest.SerializeRequestJson();
@@ -156,7 +164,7 @@ namespace Xiyu.DeepSeek
         /// <param name="cancellationToken">取消令牌</param>
         /// <exception cref="NullReferenceException"><see cref="onReceiveData"/> 为空</exception>
         /// <returns>返回统计，包含Token以及完整的响应内容</returns>
-        public UniTask<ChatCompletion> ChatCompletionStreamAsync(Action<StreamChatCompletion> onReceiveData,
+        public virtual UniTask<ChatCompletion> ChatCompletionStreamAsync(Action<StreamChatCompletion> onReceiveData,
             CancellationToken cancellationToken = default)
         {
             MessageRequest.SetStreamOptions(true);
@@ -169,57 +177,60 @@ namespace Xiyu.DeepSeek
         /// 发起一次聊天请求 【即发即收】 【异步迭代器式】 【自动记录结果】
         /// </summary>
         /// <param name="onReport">当迭代完成时返回统计，包含Token以及完整的响应内容</param>
+        /// <param name="cancellationToken">取消令牌</param>
         /// <returns>解析数据后反序列化的结构体对象</returns>
-        public IUniTaskAsyncEnumerable<StreamChatCompletion> ChatCompletionStreamAsync(Action<ChatCompletion> onReport)
+        public virtual UniTaskCancelableAsyncEnumerable<StreamChatCompletion> ChatCompletionStreamAsync(Action<ChatCompletion> onReport,
+            CancellationToken cancellationToken = default)
         {
             MessageRequest.SetStreamOptions(true);
             var requestJson = MessageRequest.SerializeRequestJson();
 
-            return ChatCompletionStreamAsync(RequestUrlByChat, requestJson, onReport);
+            return ChatCompletionStreamAsync(RequestUrlByChat, requestJson, onReport).WithCancellation(cancellationToken);
         }
 
         #endregion
 
 
-        /// <summary>
-        /// 发起一次聊天请求 【自动记录结果】
-        /// </summary>
-        /// <param name="requestJson">请求体</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <returns>对话补全内容</returns>
-        /// <exception cref="ArgumentNullException"><see cref="requestJson"/> 为空</exception>
-        protected UniTask<ChatCompletion> ChatCompletionAsync(string requestJson, CancellationToken cancellationToken = default)
-        {
-            return ChatCompletionAsync(RequestUrlByChat, requestJson, cancellationToken);
-        }
+        // /// <summary>
+        // /// 发起一次聊天请求 【自动记录结果】
+        // /// </summary>
+        // /// <param name="requestJson">请求体</param>
+        // /// <param name="cancellationToken">取消令牌</param>
+        // /// <returns>对话补全内容</returns>
+        // /// <exception cref="ArgumentNullException"><see cref="requestJson"/> 为空</exception>
+        // protected UniTask<ChatCompletion> ChatCompletionAsync(string requestJson, CancellationToken cancellationToken = default)
+        // {
+        //     return ChatCompletionAsync(RequestUrlByChat, requestJson, cancellationToken);
+        // }
+        //
+        //
+        // /// <summary>
+        // /// 发起一次聊天请求 【即发即收】 【回调式】 【自动记录结果】
+        // /// </summary>
+        // /// <param name="requestJson">请求体</param>
+        // /// <param name="onReceiveData">解析数据后反序列化的结构体对象</param>
+        // /// <param name="cancellationToken">取消令牌</param>
+        // /// <exception cref="ArgumentNullException"><see cref="requestJson"/> 为空</exception>
+        // /// <exception cref="NullReferenceException"><see cref="onReceiveData"/> 为空</exception>
+        // /// <returns>返回统计，包含Token以及完整的响应内容</returns>
+        // protected UniTask<ChatCompletion> ChatCompletionStreamAsync(string requestJson, Action<StreamChatCompletion> onReceiveData,
+        //     CancellationToken cancellationToken = default)
+        // {
+        //     return ChatCompletionStreamAsync(RequestUrlByChat, requestJson, onReceiveData, cancellationToken);
+        // }
 
-
-        /// <summary>
-        /// 发起一次聊天请求 【即发即收】 【回调式】 【自动记录结果】
-        /// </summary>
-        /// <param name="requestJson">请求体</param>
-        /// <param name="onReceiveData">解析数据后反序列化的结构体对象</param>
-        /// <param name="cancellationToken">取消令牌</param>
-        /// <exception cref="ArgumentNullException"><see cref="requestJson"/> 为空</exception>
-        /// <exception cref="NullReferenceException"><see cref="onReceiveData"/> 为空</exception>
-        /// <returns>返回统计，包含Token以及完整的响应内容</returns>
-        protected UniTask<ChatCompletion> ChatCompletionStreamAsync(string requestJson, Action<StreamChatCompletion> onReceiveData,
-            CancellationToken cancellationToken = default)
-        {
-            return ChatCompletionStreamAsync(RequestUrlByChat, requestJson, onReceiveData, cancellationToken);
-        }
-
-        /// <summary>
-        /// 发起一次聊天请求 【即发即收】 【异步迭代器式】 【自动记录结果】
-        /// </summary>
-        /// <param name="requestJson">请求体</param>
-        /// <param name="onReport">当迭代完成时返回统计，包含Token以及完整的响应内容</param>
-        /// <returns>解析数据后反序列化的结构体对象</returns>
-        /// <exception cref="ArgumentNullException"><see cref="requestJson"/> 为空</exception>
-        protected IUniTaskAsyncEnumerable<StreamChatCompletion> ChatCompletionStreamAsync(string requestJson, Action<ChatCompletion> onReport)
-        {
-            return ChatCompletionStreamAsync(RequestUrlByChat, requestJson, onReport);
-        }
+        // /// <summary>
+        // /// 发起一次聊天请求 【即发即收】 【异步迭代器式】 【自动记录结果】
+        // /// </summary>
+        // /// <param name="requestJson">请求体</param>
+        // /// <param name="onReport">当迭代完成时返回统计，包含Token以及完整的响应内容</param>
+        // /// <param name="toolMessage"></param>
+        // /// <returns>解析数据后反序列化的结构体对象</returns>
+        // /// <exception cref="ArgumentNullException"><see cref="requestJson"/> 为空</exception>
+        // protected IUniTaskAsyncEnumerable<StreamChatCompletion> ChatCompletionStreamAsync(string requestJson, Action<ChatCompletion> onReport, Action toolMessage)
+        // {
+        //     return ChatCompletionStreamAsync(RequestUrlByChat, requestJson, onReport, toolMessage);
+        // }
 
 
         /// <summary>
@@ -274,9 +285,11 @@ namespace Xiyu.DeepSeek
         /// <param name="requestUrl">请求URL （相对）</param>
         /// <param name="requestJson">请求体</param>
         /// <param name="onReport">当迭代完成时返回统计，包含Token以及完整的响应内容</param>
+        /// <param name="toolMessage"></param>
         /// <returns>解析数据后反序列化的结构体对象</returns>
         /// <exception cref="ArgumentNullException"><see cref="requestJson"/> 为空</exception>
-        protected IUniTaskAsyncEnumerable<StreamChatCompletion> ChatCompletionStreamAsync(string requestUrl, string requestJson, Action<ChatCompletion> onReport)
+        protected IUniTaskAsyncEnumerable<StreamChatCompletion> ChatCompletionStreamAsync(string requestUrl, string requestJson, Action<ChatCompletion> onReport,
+            Action<ChatCompletion> toolMessage = null)
         {
             if (string.IsNullOrWhiteSpace(requestJson))
                 throw new ArgumentNullException(nameof(requestJson));
@@ -286,12 +299,13 @@ namespace Xiyu.DeepSeek
                 RecordReport(report);
 
                 onReport?.Invoke(report);
-            });
+            }, toolMessage);
         }
 
+        // [Obsolete] private (string id, int index, string type, string funcName, StringBuilder arguments)?[] _toolsInfo;
 
         protected IUniTaskAsyncEnumerable<StreamChatCompletion> ChatCompletionStreamNotRecordAsync(
-            string requestUrl, string requestJson, Action<ChatCompletion> onReport = null)
+            string requestUrl, string requestJson, Action<ChatCompletion> onReport = null, Action<ChatCompletion> toolMessage = null)
         {
             return UniTaskAsyncEnumerable.Create<StreamChatCompletion>(async (writer, token) =>
             {
@@ -301,24 +315,37 @@ namespace Xiyu.DeepSeek
 
                     using var streamReader = new StreamReader(stream);
 
-                    RoleType? first = null;
+                    Role? first = null;
                     StreamChatCompletion? last = null;
+                    _toolsInfos.Clear();
 
                     await foreach (var data in ReadStreamForLine(streamReader, JsonDeserializeException))
                     {
                         var jsonContent = data;
                         var streamChatCompletion = DeserializeObject<StreamChatCompletion>(ref jsonContent, StreamChatCompletion.DeSerializerSettings);
 
+                        AnalyzeStreamToolList(ref streamChatCompletion);
+
                         PushContent(ref streamChatCompletion);
 
                         AnalyzeBeingEnd(ref first, ref last, ref streamChatCompletion);
 
+                        // 判断是否是工具消息 并且 不接收工具数据段
+                        if (_toolsInfos.Count != 0 && !ReceiveToolData)
+                        {
+                            continue;
+                        }
+
                         await writer.YieldAsync(streamChatCompletion);
                     }
 
+                    var toolList = ToToolList();
+
                     // 统计 - 缺少前缀内容
-                    var report = CombinationStreamChatCompletion(first, last);
+                    var report = CombinationStreamChatCompletion(first, last, toolList);
+                    _toolsInfos.Clear();
                     onReport?.Invoke(report);
+                    toolMessage?.Invoke(report);
                 }
                 finally
                 {
@@ -327,6 +354,56 @@ namespace Xiyu.DeepSeek
             });
         }
 
+        // [Obsolete]
+        // private void AnalyzeToolList(ref StreamChatCompletion streamChatCompletion)
+        // {
+        //     var toolCalls = streamChatCompletion.GetMessage().ToolCalls;
+        //     if (toolCalls is not { Count: > 0 }) return;
+        //
+        //     _toolsInfo ??= new (string id, int index, string type, string funcName, StringBuilder arguments)?[toolCalls.Count];
+        //
+        //     for (var i = 0; i < toolCalls.Count; i++)
+        //     {
+        //         var tool = toolCalls[0];
+        //         if (_toolsInfo[i] == null && !string.IsNullOrEmpty(tool.ID))
+        //         {
+        //             _toolsInfo[i] = (tool.ID, tool.Index, tool.Type, tool.Function.Name, new StringBuilder());
+        //         }
+        //         else if (_toolsInfo[i] != null && !string.IsNullOrEmpty(tool.Function.Arguments))
+        //         {
+        //             _toolsInfo[i].Value.arguments.Append(tool.Function.Arguments);
+        //         }
+        //     }
+        // }
+
+
+        private void AnalyzeStreamToolList(ref StreamChatCompletion streamChatCompletion)
+        {
+            var toolCalls = streamChatCompletion.GetMessage().ToolCalls;
+            if (toolCalls is not { Count: > 0 }) return;
+
+            foreach (var tool in toolCalls)
+            {
+                if (!string.IsNullOrEmpty(tool.ID))
+                {
+                    _toolsInfos.Add((tool.ID, tool.Index, tool.Type, tool.Function.Name, new StringBuilder()));
+                }
+                else
+                {
+                    _toolsInfos[tool.Index].arguments.Append(tool.Function.Arguments);
+                }
+            }
+        }
+
+        private List<Tool> ToToolList()
+        {
+            return _toolsInfos.Count == 0
+                ? ToolsEmpty
+                : _toolsInfos.Select(t => new Tool(t.index, t.id, t.type, new Function(t.funcName, t.arguments.ToString())))
+                    .ToList();
+        }
+
+        public bool ReceiveToolData { get; set; } = false;
 
         protected async UniTask<ChatCompletion> ChatCompletionStreamNotRecordAsync(string requestUrl, string requestJson, Action<StreamChatCompletion> onReceiveData,
             Func<ChatCompletion, ChatCompletion> resultFunc,
@@ -338,22 +415,35 @@ namespace Xiyu.DeepSeek
 
                 using var streamReader = new StreamReader(stream);
 
-                RoleType? first = null;
+                Role? first = null;
                 StreamChatCompletion? last = null;
+                // _toolsInfo = null;
+                _toolsInfos.Clear();
 
                 await ReadStreamForLine(streamReader, data =>
                 {
                     var jsonContent = data;
                     var streamChatCompletion = DeserializeObject<StreamChatCompletion>(ref jsonContent, StreamChatCompletion.DeSerializerSettings);
 
+                    AnalyzeStreamToolList(ref streamChatCompletion);
+
                     PushContent(ref streamChatCompletion);
 
                     AnalyzeBeingEnd(ref first, ref last, ref streamChatCompletion);
 
+                    // 判断是否是工具消息 并且 不接收工具数据段
+                    if (_toolsInfos.Count != 0 && !ReceiveToolData)
+                    {
+                        return;
+                    }
+
                     onReceiveData(streamChatCompletion);
                 }, JsonDeserializeException, cancellationToken);
 
-                var report = CombinationStreamChatCompletion(first, last);
+                var toolList = ToToolList();
+
+                var report = CombinationStreamChatCompletion(first, last, toolList);
+                _toolsInfos.Clear();
                 return resultFunc(report);
             }
             finally
@@ -483,14 +573,14 @@ namespace Xiyu.DeepSeek
 
                 if (!deserializeObject.IsValid())
                 {
-                    UnityEngine.Debug.LogWarning($"可能序列化了一个不包含有效值的结构体！json:\n{jsonContent}");
+                    Debug.LogWarning($"可能序列化了一个不包含有效值的结构体！json:\n{jsonContent}");
                 }
 
                 return deserializeObject;
             }
             catch (JsonSerializationException)
             {
-                UnityEngine.Debug.LogError($"无法序列化对象{typeof(T)}-{jsonContent}");
+                Debug.LogError($"无法序列化对象{typeof(T)}-{jsonContent}");
                 throw;
             }
         }
@@ -516,7 +606,7 @@ namespace Xiyu.DeepSeek
             }
             catch (JsonSerializationException e)
             {
-                UnityEngine.Debug.LogWarning($"流式接收不以\"data: \"开头的数据：{jsonContent}");
+                Debug.LogWarning($"流式接收不以\"data: \"开头的数据：{jsonContent}");
                 return e;
             }
         }
@@ -671,7 +761,7 @@ namespace Xiyu.DeepSeek
         }
 
 
-        private static void AnalyzeBeingEnd(ref RoleType? first, ref StreamChatCompletion? last, ref StreamChatCompletion streamChatCompletion)
+        private static void AnalyzeBeingEnd(ref Role? first, ref StreamChatCompletion? last, ref StreamChatCompletion streamChatCompletion)
         {
             var message = streamChatCompletion.GetMessage();
 
@@ -695,6 +785,26 @@ namespace Xiyu.DeepSeek
 
         private void RecordReport(ChatCompletion report, string prefix = null)
         {
+            if (report.Choices[0].FinishReason is FinishReason.ToolCalls)
+            {
+                var tools = report.GetMessage().ToolCalls;
+                if (tools.Count == 0)
+                {
+                    Debug.LogWarning("触发了工具调用，但是模型未返回有效工具！");
+                }
+                else
+                {
+                    var assistantToolMessage = new AssistantToolMessage(tools);
+                    MessageRequest.MessagesCollector.Append(assistantToolMessage);
+
+#if UNITY_EDITOR
+                    ((List<Tool>)tools).ForEach(tool => Debug.Log($"调用函数\"<color=#489fee>{tool.Function.Name}</color>\"参数列表：<color=#c678dd>{tool.Function.Arguments}</color>"));
+#endif
+                }
+
+                return;
+            }
+
             var message = report.GetMessage();
             var fullContent = string.Concat(prefix ?? string.Empty, message.Content);
 
@@ -705,8 +815,7 @@ namespace Xiyu.DeepSeek
             MessageRequest.MessagesCollector.Append(fullMessage);
         }
 
-
-        private ChatCompletion CombinationStreamChatCompletion(RoleType? first, StreamChatCompletion? last)
+        private ChatCompletion CombinationStreamChatCompletion(Role? first, StreamChatCompletion? last, List<Tool> tools)
         {
             if (!first.HasValue)
             {
@@ -728,7 +837,7 @@ namespace Xiyu.DeepSeek
             var reasoningContent = _reasoningContentBuilder.ToString();
             _reasoningContentBuilder.Clear();
 
-            var count = StreamChatCompletion.CountChatCompletion(last.Value, first.Value, content, reasoningContent, usage);
+            var count = StreamChatCompletion.CountChatCompletion(last.Value, first.Value, content, reasoningContent, usage, tools);
 
             return count;
         }

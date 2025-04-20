@@ -15,6 +15,13 @@ namespace Xiyu.DeepSeek.Requests
     {
         public static JsonSerializer JsonSerializer { get; } = new()
         {
+            Converters =
+            {
+                new StringEnumConverter
+                {
+                    NamingStrategy = new SnakeCaseNamingStrategy()
+                }
+            },
             ContractResolver = new DefaultContractResolver
             {
                 NamingStrategy = new SnakeCaseNamingStrategy()

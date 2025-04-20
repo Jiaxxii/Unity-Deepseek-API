@@ -189,6 +189,7 @@ GameObject:
   m_Component:
   - component: {fileID: 244946659}
   - component: {fileID: 244946658}
+  - component: {fileID: 244946660}
   m_Layer: 0
   m_Name: Manager
   m_TagString: Untagged
@@ -203,20 +204,20 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 244946657}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7fc87e07e4194fadb3b9a15bf312881c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  apiKey: sk-you_api_key
+  apiKey: sk-6b8c8517209744aa9ef1830d21ca9524
   outputText: {fileID: 1336660047}
+  scrollRect: {fileID: 562580776}
   inputField: {fileID: 2044459956}
-  contentRectTransform: {fileID: 2006915285}
   collector:
     readOnlyMessage: []
   requestBody:
-    model: 2
-    maxToken: 512
+    model: 1
+    maxToken: 2048
     stop: []
     stream: 0
     streamOptions:
@@ -232,7 +233,7 @@ MonoBehaviour:
     temperature: 1
     topP: 1
     logprobs:
-      ignore: 0
+      ignore: 1
       topLogprobs: 0
 --- !u!4 &244946659
 Transform:
@@ -249,6 +250,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &244946660
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 244946657}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 226536de4c1848bf97e0d6132584d620, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &275803086
 GameObject:
   m_ObjectHideFlags: 0
@@ -369,13 +382,13 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 34.43
-  m_fontSizeBase: 34.43
+  m_fontSize: 45
+  m_fontSizeBase: 45
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
   m_fontSizeMax: 72
-  m_fontStyle: 0
+  m_fontStyle: 1
   m_HorizontalAlignment: 1
   m_VerticalAlignment: 256
   m_textAlignment: 65535
@@ -385,7 +398,7 @@ MonoBehaviour:
   m_lineSpacingMax: 0
   m_paragraphSpacing: 0
   m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 0
+  m_enableWordWrapping: 1
   m_wordWrappingRatios: 0.4
   m_overflowMode: 0
   m_linkedTextComponent: {fileID: 0}
@@ -585,7 +598,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -678,7 +691,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -19.999828, y: 5}
+  m_AnchoredPosition: {x: -19.999878, y: 5}
   m_SizeDelta: {x: -80.00034, y: -30}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &562580776
@@ -1712,7 +1725,7 @@ MonoBehaviour:
   m_InputType: 0
   m_AsteriskChar: 42
   m_KeyboardType: 0
-  m_LineType: 0
+  m_LineType: 1
   m_HideMobileInput: 0
   m_HideSoftKeyboard: 0
   m_CharacterValidation: 0
@@ -1930,5 +1943,5 @@ SceneRoots:
   - {fileID: 519420032}
   - {fileID: 461700373}
   - {fileID: 1036896639}
-  - {fileID: 244946659}
   - {fileID: 1043641128}
+  - {fileID: 244946659}

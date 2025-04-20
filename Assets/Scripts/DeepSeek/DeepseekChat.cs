@@ -1,14 +1,18 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using Cysharp.Threading.Tasks.Linq;
+using UnityEngine;
 using Xiyu.DeepSeek.Messages;
 using Xiyu.DeepSeek.Requests;
 using Xiyu.DeepSeek.Responses;
 using Xiyu.DeepSeek.Responses.Expand;
 using Xiyu.DeepSeek.Responses.FimResult;
+using Xiyu.DeepSeek.Responses.ToolResult;
+using Random = UnityEngine.Random;
 
 namespace Xiyu.DeepSeek
 {
@@ -16,6 +20,12 @@ namespace Xiyu.DeepSeek
     {
         private const string FimRequestUrl = "/completions";
         private readonly StringBuilder _contentBuilder = new();
+
+        private readonly Dictionary<string, Func<Function, UniTask<string>>> _tools = new()
+        {
+            { "get_weather", _ => UniTask.FromResult(Random.Range(24, 32).ToString()) }
+        };
+
 
         public DeepseekChat(string apiKey, ChatMessageRequest messageRequest) : base(apiKey, messageRequest)
         {
@@ -163,6 +173,116 @@ namespace Xiyu.DeepSeek
         }
 
         #endregion
+
+
+        #region CHAT
+
+        public override async UniTask<ChatCompletion> ChatCompletionAsync(CancellationToken cancellationToken = default)
+        {
+            var firstChatCompletion = await base.ChatCompletionAsync(cancellationToken);
+            if (!TryGetTools(firstChatCompletion, out var tools))
+            {
+                return firstChatCompletion;
+            }
+
+            await CallToolFunctionAsync(tools);
+
+            return (await base.ChatCompletionAsync(cancellationToken)).Completion(string.Empty, firstChatCompletion.Usage);
+        }
+
+        public override async UniTask<ChatCompletion> ChatCompletionStreamAsync(Action<StreamChatCompletion> onReceiveData, CancellationToken cancellationToken = default)
+        {
+            var firstChatCompletion = await base.ChatCompletionStreamAsync(onReceiveData, cancellationToken);
+
+            if (!TryGetTools(firstChatCompletion, out var tools))
+            {
+                return firstChatCompletion;
+            }
+
+            await CallToolFunctionAsync(tools);
+
+            var secondChatCompletion = await base.ChatCompletionStreamAsync(onReceiveData, cancellationToken);
+
+            return secondChatCompletion.Completion(string.Empty, firstChatCompletion.Usage);
+        }
+
+        public override UniTaskCancelableAsyncEnumerable<StreamChatCompletion> ChatCompletionStreamAsync(Action<ChatCompletion> onReport,
+            CancellationToken cancellationToken = default)
+        {
+            return UniTaskAsyncEnumerable.Create<StreamChatCompletion>(async (writer, token) =>
+            {
+                MessageRequest.SetStreamOptions(true);
+                var requestJson = MessageRequest.SerializeRequestJson();
+
+
+                ChatCompletion? fistChatCompletion = null;
+                await foreach (var data in ChatCompletionStreamAsync(RequestUrlByChat, requestJson, null, report => fistChatCompletion = report))
+                {
+                    await writer.YieldAsync(data);
+                }
+
+                if (!fistChatCompletion.HasValue)
+                    throw new HttpResponseErrorException("流式读取异常，未按照预期获取到统计结果！");
+
+
+                if (!TryGetTools(fistChatCompletion.Value, out var tools))
+                {
+                    onReport?.Invoke(fistChatCompletion.Value);
+                    return;
+                }
+
+                await CallToolFunctionAsync(tools);
+
+                MessageRequest.SetStreamOptions(true);
+                requestJson = MessageRequest.SerializeRequestJson();
+
+                ChatCompletion? secondChatCompletion = null;
+                await foreach (var data in ChatCompletionStreamAsync(RequestUrlByChat, requestJson, null, report => secondChatCompletion = report))
+                {
+                    await writer.YieldAsync(data);
+                }
+
+                if (!secondChatCompletion.HasValue)
+                    throw new HttpResponseErrorException("流式读取异常，未按照预期获取到统计结果！");
+
+                onReport?.Invoke(secondChatCompletion.Value.Completion(string.Empty, fistChatCompletion.Value.Usage));
+            }).WithCancellation(cancellationToken);
+        }
+
+        #endregion
+
+
+        private async UniTask CallToolFunctionAsync(IList<Tool> tools)
+        {
+            foreach (var tool in tools)
+            {
+                if (!_tools.TryGetValue(tool.Function.Name, out var toolFunc))
+                {
+                    Debug.LogWarning($"模型请求方法调用，但是您未定义方法\"{tool.Function.Name}\"");
+                    continue;
+                }
+
+
+                var result = await toolFunc(tool.Function);
+                var toolMessage = new ToolMessage(result, tool.ID);
+
+                MessageRequest.MessagesCollector.Append(toolMessage);
+            }
+        }
+
+
+        private static bool TryGetTools(ChatCompletion chatCompletion, out IList<Tool> tools)
+        {
+            if (chatCompletion.Choices[0].FinishReason is not FinishReason.ToolCalls)
+            {
+                tools = null;
+                return false;
+            }
+
+
+            tools = chatCompletion.Choices[0].Message.ToolCalls;
+            return true;
+        }
 
         private FimChatCompletion GetFimResult(ref FimChatCompletion report, ref string prompt, ref string suffix, ref bool echo, ref bool recordToMessageList)
         {

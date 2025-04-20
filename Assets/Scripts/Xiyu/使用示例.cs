@@ -3,6 +3,7 @@ using System.Text.RegularExpressions;
 using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 using Xiyu.DeepSeek;
 using Xiyu.DeepSeek.Messages;
 using Xiyu.DeepSeek.Requests;
@@ -15,8 +16,8 @@ namespace Xiyu
     {
         [SerializeField] private string apiKey;
         [SerializeField] private TextMeshProUGUI outputText;
+        [SerializeField] private ScrollRect scrollRect;
         [SerializeField] private TMP_InputField inputField;
-        [SerializeField] private RectTransform contentRectTransform;
 
         [SerializeField] private MessagesCollector collector;
 
@@ -28,8 +29,14 @@ namespace Xiyu
 
         private void Awake()
         {
+            var systemPrompt = Resources.Load<TextAsset>("SystemPrompt").text;
+            systemPrompt = systemPrompt
+                .Replace("\r", string.Empty)
+                .Replace("\n", string.Empty)
+                .Replace("{TIME}", DateTime.Now.ToString("yyyy年MM月dd日 HH时mm分"));
+
             collector = new MessagesCollector(
-                new SystemMessage("你叫“西”，是一个普普通通的人类，用户是你的朋友“雨”（不要输出unicode表情）。")
+                new SystemMessage(systemPrompt)
             );
 
             requestBody.MessagesCollector = collector;
@@ -46,6 +53,7 @@ namespace Xiyu
                 {
                     var input = await handler.OnSubmitAsync();
                     inputField.interactable = false;
+                    scrollRect.verticalNormalizedPosition = 1;
 
                     var parameters = input.Split('$', StringSplitOptions.RemoveEmptyEntries);
 
@@ -53,6 +61,8 @@ namespace Xiyu
                     {
                         continue;
                     }
+
+                    inputField.text = string.Empty;
 
                     FindObjectOfType<Loading>().IsRun = true;
                     if (parameters.Length == 1)
@@ -139,7 +149,7 @@ namespace Xiyu
                 }
             }
 
-            PrintText("<\b>");
+            PrintText("</b>");
         }
 
         private async UniTask PrefixChatCompletionAsync(string input, string prefix)
@@ -170,10 +180,10 @@ namespace Xiyu
             }
             else outputText.text += text;
 
-            if (contentRectTransform.sizeDelta.y < outputText.rectTransform.sizeDelta.y)
+            if (scrollRect.content.sizeDelta.y < outputText.rectTransform.sizeDelta.y)
             {
                 const float additional = 300;
-                contentRectTransform.sizeDelta = new Vector2(contentRectTransform.sizeDelta.x, outputText.rectTransform.sizeDelta.y + additional);
+                scrollRect.content.sizeDelta = new Vector2(scrollRect.content.sizeDelta.x, outputText.rectTransform.sizeDelta.y + additional);
             }
         }
 

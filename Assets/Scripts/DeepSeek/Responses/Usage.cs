@@ -46,6 +46,19 @@ namespace Xiyu.DeepSeek.Responses
 
         public bool IsValid() =>
             CompletionTokens + PromptTokens + PromptCacheHitTokens + PromptCacheMissTokens + TotalTokens + CompletionTokensDetails.ReasoningTokens > 0;
+
+
+        public static Usage operator +(Usage first, Usage second)
+        {
+            return new Usage(
+                completionTokens: first.CompletionTokens + second.CompletionTokens,
+                promptTokens: first.PromptTokens + second.PromptTokens,
+                promptCacheHitTokens: first.PromptCacheHitTokens + second.PromptCacheHitTokens,
+                promptCacheMissTokens: first.PromptCacheMissTokens + second.PromptCacheMissTokens,
+                totalTokens: first.TotalTokens + second.TotalTokens,
+                completionTokensDetails: first.CompletionTokensDetails + second.CompletionTokensDetails
+            );
+        }
     }
 
     public readonly struct CompletionTokensDetails
@@ -60,5 +73,7 @@ namespace Xiyu.DeepSeek.Responses
         /// 推理模型所产生的思维链 token 数量
         /// </summary>
         public int ReasoningTokens { get; }
+
+        public static CompletionTokensDetails operator +(CompletionTokensDetails first, CompletionTokensDetails second) => new(first.ReasoningTokens + second.ReasoningTokens);
     }
 }

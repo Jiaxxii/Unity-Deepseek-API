@@ -1,6 +1,6 @@
 ﻿namespace Xiyu.DeepSeek.Requests.Tools
 {
-    public enum ChatCompletionToolChoice
+    public enum CallType
     {
         /// <summary>
         /// 意味着模型不会调用任何 tool，而是生成一条消息。

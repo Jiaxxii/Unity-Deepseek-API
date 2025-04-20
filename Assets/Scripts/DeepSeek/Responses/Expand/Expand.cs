@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using Xiyu.DeepSeek.Responses.FimResult;
+using Xiyu.DeepSeek.Responses.ToolResult;
 
 namespace Xiyu.DeepSeek.Responses.Expand
 {
@@ -37,13 +38,13 @@ namespace Xiyu.DeepSeek.Responses.Expand
             return streamChatCompletion.Choices.Any(v => !string.IsNullOrEmpty(v.Text));
         }
 
-        public static ChatCompletion Completion(this ChatCompletion chatCompletion, string prefix)
+        public static ChatCompletion Completion(this ChatCompletion chatCompletion, string prefix, Usage? usage = null)
         {
             var choice = chatCompletion.Choices[0];
             var message = new Message(string.Concat(prefix, choice.Message.Content), choice.Message.ReasoningContent, choice.Message.Role, choice.Message.ToolCalls);
             var choicesList = new List<Choices> { new(choice.FinishReason, choice.Index, message, choice.Logprobs) };
             return new ChatCompletion(chatCompletion.ID, choicesList, chatCompletion.Model, chatCompletion.Created, chatCompletion.SystemFingerprint, chatCompletion.Object,
-                chatCompletion.Usage, chatCompletion.Error);
+                usage ?? chatCompletion.Usage, chatCompletion.Error);
         }
 
         public static FimChatCompletion Completion(this FimChatCompletion chatCompletion, string prompt, string suffix)

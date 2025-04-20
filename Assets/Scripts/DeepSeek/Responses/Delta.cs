@@ -1,5 +1,8 @@
-﻿using System.Diagnostics;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using Newtonsoft.Json;
+using Xiyu.DeepSeek.Messages;
+using Xiyu.DeepSeek.Responses.ToolResult;
 
 namespace Xiyu.DeepSeek.Responses
 {
@@ -7,11 +10,12 @@ namespace Xiyu.DeepSeek.Responses
     public readonly struct Delta
     {
         [JsonConstructor]
-        public Delta(string content, string reasoningContent, RoleType role)
+        public Delta(string content, string reasoningContent, Role role, IList<Tool> toolCalls)
         {
             Content = content;
             ReasoningContent = reasoningContent;
             Role = role;
+            ToolCalls = toolCalls;
         }
 
         /// <summary>
@@ -27,6 +31,11 @@ namespace Xiyu.DeepSeek.Responses
         /// <summary>
         /// 生成这条消息的角色。
         /// </summary>
-        public RoleType Role { get; }
+        public Role Role { get; }
+        
+        /// <summary>
+        /// 模型生成的 tool 调用，例如 function 调用。
+        /// </summary>
+        public IList<Tool> ToolCalls { get; }
     }
 }

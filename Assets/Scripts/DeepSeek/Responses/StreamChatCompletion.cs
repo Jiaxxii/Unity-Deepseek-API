@@ -2,6 +2,8 @@
 using System.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
+using Xiyu.DeepSeek.Messages;
+using Xiyu.DeepSeek.Responses.ToolResult;
 
 namespace Xiyu.DeepSeek.Responses
 {
@@ -69,12 +71,14 @@ namespace Xiyu.DeepSeek.Responses
         /// <param name="content">完整的回答</param>
         /// <param name="reasoningContent">完整的思考内容</param>
         /// <param name="usage">最后一个数据的块</param>
+        /// <param name="tools">最后一个数据的块</param>
         /// <returns></returns>
-        public static ChatCompletion CountChatCompletion(StreamChatCompletion lastCompletion, RoleType roleType, string content, string reasoningContent, Usage usage)
+        public static ChatCompletion CountChatCompletion(StreamChatCompletion lastCompletion, Role roleType, string content, string reasoningContent, Usage usage,
+            IList<Tool> tools)
         {
             var choices = new List<Choices>(1)
             {
-                new(lastCompletion.Choices[0].FinishReason, lastCompletion.Choices[0].Index, new Message(content, reasoningContent, roleType, null), null)
+                new(lastCompletion.Choices[0].FinishReason, lastCompletion.Choices[0].Index, new Message(content, reasoningContent, roleType, tools), null)
             };
             return new ChatCompletion(lastCompletion.ID, choices, lastCompletion.Model, lastCompletion.Created, lastCompletion.SystemFingerprint, lastCompletion.Object,
                 usage, null);
