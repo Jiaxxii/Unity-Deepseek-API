@@ -158,6 +158,13 @@ namespace Xiyu.DeepSeek.Requests
                 jObject.Add(KeyTopLogprobs, Mathf.Clamp(logprobs.Logprobs, 0, 20));
             }
 
+            if (Tools == null)
+            {
+                jObject.Remove(KeyTools);
+                jObject.Remove(KeyToolChoice);
+                return jObject;
+            }
+
             if (Tools.Count == 0 && toolChoice is { CallType: CallType.Required })
             {
                 throw new ArgumentException("你指定了模型必须调用工具，但是你没有定义任何工具！");

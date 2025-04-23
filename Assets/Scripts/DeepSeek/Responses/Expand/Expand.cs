@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json.Linq;
 using Xiyu.DeepSeek.Responses.FimResult;
-using Xiyu.DeepSeek.Responses.ToolResult;
 
 namespace Xiyu.DeepSeek.Responses.Expand
 {
@@ -56,6 +56,12 @@ namespace Xiyu.DeepSeek.Responses.Expand
                 chatCompletion.Usage,
                 fimChoicesList,
                 chatCompletion.Error);
+        }
+
+
+        public static JObject FormJObject(this ToolResult.Function function)
+        {
+            return JObject.FromObject(function.Arguments);
         }
     }
 }

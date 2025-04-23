@@ -30,7 +30,10 @@ namespace Xiyu.功能演示_注意只启用一个脚本
                 }
             }, recordToMessageList: false);
 
-            PrintText($"\n\nToken统计：{chatCompletion.Usage.TotalTokens}");
+            await deepseekChat.FimChatCompletionAsync(fimRequest, recordToMessageList: true);
+            
+            PrintText(
+                $"\n\n</b><color=#65c2ca>{chatCompletion.Usage.TotalTokens}</color> <i>tokens</i> (<color=#c481cf><b>≈ {chatCompletion.CalculatePrice()}</b></color><color=red>￥</color>)");
         }
     }
 }

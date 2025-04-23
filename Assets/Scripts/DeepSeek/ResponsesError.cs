@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿using System.Diagnostics;
+using Newtonsoft.Json;
 
 namespace Xiyu.DeepSeek
 {
@@ -13,6 +14,7 @@ namespace Xiyu.DeepSeek
         public Error? Error { get; }
     }
 
+    [DebuggerDisplay("{ToString()}")]
     public readonly struct Error
     {
         [JsonConstructor]
@@ -33,7 +35,7 @@ namespace Xiyu.DeepSeek
 
         public override string ToString()
         {
-            return JsonConvert.SerializeObject(this);
+            return JsonConvert.SerializeObject(this, Formatting.None);
         }
     }
 }

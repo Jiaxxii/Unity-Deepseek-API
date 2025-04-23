@@ -11,7 +11,7 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             base.Start();
 
             // 发送消息 =》 早上好（扫了一眼昨天给她的晚饭）嗯……（完全没动）
-            _messagesCollector.AppendUserMessage("早上好（伸手摸头）");
+            _messagesCollector.AppendUserMessage("你是叫璃雨吧？（打量）");
 
 
             // 我给的人设大概是 “高冷、不苟言笑、讨厌人类的” （人设定义见：Resources文件夹SystemPrompt.txt）
@@ -27,7 +27,8 @@ namespace Xiyu.功能演示_注意只启用一个脚本
                 }
             });
             
-            PrintText($"\n\nToken统计：{chatCompletion.Usage.TotalTokens}");
+            PrintText(
+                $"\n\n</b><color=#65c2ca>{chatCompletion.Usage.TotalTokens}</color> <i>tokens</i> (<color=#c481cf><b>≈ {chatCompletion.CalculatePrice()}</b></color><color=red>￥</color>)");
 
             //////////////////////////////////////////////////////////////////////
 
@@ -48,7 +49,8 @@ namespace Xiyu.功能演示_注意只启用一个脚本
                 }
             });
 
-            PrintText($"\n\nToken统计：{secondChatCompletion.Usage.TotalTokens}");
+            PrintText(
+                $"\n\n</b><color=#65c2ca>{secondChatCompletion.Usage.TotalTokens}</color> <i>tokens</i> (<color=#c481cf><b>≈ {secondChatCompletion.CalculatePrice()}</b></color><color=red>￥</color>)");
         }
     }
 }

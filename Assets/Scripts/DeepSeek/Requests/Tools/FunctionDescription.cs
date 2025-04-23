@@ -8,6 +8,8 @@ namespace Xiyu.DeepSeek.Requests.Tools
         public string Description { get; set; }
         public object Parameters { get; set; }
 
+        // public JObject Parameters { get; set; }
+
         public IEnumerable<string> Required { get; set; }
     }
 }

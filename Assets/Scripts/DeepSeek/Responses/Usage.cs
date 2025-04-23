@@ -1,9 +1,10 @@
 ﻿using System.Diagnostics;
 using Newtonsoft.Json;
+using Xiyu.DeepSeek.Responses.Expand;
 
 namespace Xiyu.DeepSeek.Responses
 {
-    [DebuggerDisplay("TotalTokens：{TotalTokens}")]
+    [DebuggerDisplay("{TotalTokens} tokens")]
     public readonly struct Usage
     {
         [JsonConstructor]
@@ -47,7 +48,6 @@ namespace Xiyu.DeepSeek.Responses
         public bool IsValid() =>
             CompletionTokens + PromptTokens + PromptCacheHitTokens + PromptCacheMissTokens + TotalTokens + CompletionTokensDetails.ReasoningTokens > 0;
 
-
         public static Usage operator +(Usage first, Usage second)
         {
             return new Usage(
@@ -61,6 +61,7 @@ namespace Xiyu.DeepSeek.Responses
         }
     }
 
+    [DebuggerDisplay("reasoning<UNK>{ReasoningTokens} tokens")]
     public readonly struct CompletionTokensDetails
     {
         [JsonConstructor]

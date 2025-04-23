@@ -26,7 +26,12 @@ namespace Xiyu.DeepSeek.Messages
 
         public bool Prefix => true;
 
-        [JsonIgnore] public bool IsJointPrefix => jointPrefix;
+        [JsonIgnore]
+        public bool IsJointPrefix
+        {
+            get => jointPrefix;
+            set => jointPrefix = value;
+        }
 
         /// <summary>
         /// (Beta) 用于 deepseek-reasoner 模型在对话前缀续写功能下，作为最后一条 assistant 思维链内容的输入。

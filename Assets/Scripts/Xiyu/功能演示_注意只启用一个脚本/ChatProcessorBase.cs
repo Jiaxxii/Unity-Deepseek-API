@@ -1,4 +1,5 @@
 ﻿using System.Linq;
+using JetBrains.Annotations;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -20,7 +21,7 @@ namespace Xiyu.功能演示_注意只启用一个脚本
 
         protected virtual void Start()
         {
-            Debug.Log(gameObject.name);
+            Debug.Log($"<Color=#38cb90>{gameObject.name}</color>");
             chatMessageRequest.MessagesCollector = _messagesCollector;
             _processor = new DeepseekChat(_apiKey, chatMessageRequest);
 
@@ -45,7 +46,7 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             {
                 if (use.enabled)
                 {
-                    Debug.LogWarning($"为了防止冲突，关闭了脚本\"使用示例\"");
+                    Debug.LogWarning("为了防止冲突，关闭了脚本\"使用示例\"");
                 }
 
                 use.enabled = false;
@@ -70,7 +71,7 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             }
         }
 
-        protected void ClearText() => _output.text = string.Empty;
+        protected void ClearText([CanBeNull] string start = null) => _output.text = start ?? string.Empty;
 
         protected virtual string GetDefaultSystemPrompt() => Resources.Load<TextAsset>("SystemPrompt").text;
 

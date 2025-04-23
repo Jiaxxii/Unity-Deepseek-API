@@ -212,9 +212,6 @@ MonoBehaviour:
     model: 1
     maxToken: 2028
     stop: []
-    stream: 0
-    streamOptions:
-      includeUsage: 0
     responseFormat: 0
     frequencyPenalty: 0
     presencePenalty: 0
@@ -279,9 +276,6 @@ MonoBehaviour:
     model: 1
     maxToken: 2048
     stop: []
-    stream: 0
-    streamOptions:
-      includeUsage: 0
     responseFormat: 0
     frequencyPenalty: 0
     presencePenalty: 0
@@ -324,7 +318,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &262256227
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -341,9 +335,6 @@ MonoBehaviour:
     model: 1
     maxToken: 2048
     stop: []
-    stream: 0
-    streamOptions:
-      includeUsage: 0
     responseFormat: 0
     frequencyPenalty: 0
     presencePenalty: 0
@@ -914,44 +905,14 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 592471034}
-  - component: {fileID: 592471033}
+  - component: {fileID: 592471035}
   m_Layer: 0
   m_Name: "\u5BF9\u8BDD\u8BF7\u6C42"
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
---- !u!114 &592471033
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 592471032}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 69b9dc47926b44af819f7a8b427d6823, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  chatMessageRequest:
-    model: 1
-    maxToken: 2048
-    stop: []
-    stream: 0
-    streamOptions:
-      includeUsage: 0
-    responseFormat: 0
-    frequencyPenalty: 0
-    presencePenalty: 0
-    temperature: 1
-    topP: 1
-    logprobs:
-      ignore: 1
-      topLogprobs: 0
-    toolChoice:
-      callType: 0
-      functionName: 
+  m_IsActive: 1
 --- !u!4 &592471034
 Transform:
   m_ObjectHideFlags: 0
@@ -967,6 +928,33 @@ Transform:
   m_Children: []
   m_Father: {fileID: 573294664}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &592471035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 592471032}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 68b5ca0a64494cca94bb779396114310, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  chatMessageRequest:
+    model: 1
+    maxToken: 2014
+    stop: []
+    responseFormat: 0
+    frequencyPenalty: 0
+    presencePenalty: 0
+    temperature: 1
+    topP: 1
+    logprobs:
+      ignore: 1
+      topLogprobs: 0
+    toolChoice:
+      callType: 0
+      functionName: 
 --- !u!1 &626636409
 GameObject:
   m_ObjectHideFlags: 0
@@ -1000,9 +988,6 @@ MonoBehaviour:
     model: 1
     maxToken: 2048
     stop: []
-    stream: 0
-    streamOptions:
-      includeUsage: 0
     responseFormat: 0
     frequencyPenalty: 0
     presencePenalty: 0

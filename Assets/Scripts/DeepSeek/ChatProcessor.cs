@@ -61,6 +61,11 @@ namespace Xiyu.DeepSeek
 
         public MessageRequest MessageRequest { get; set; }
 
+        /// <summary>
+        /// 接收工具消息的响应
+        /// </summary>
+        public bool ReceiveToolData { get; set; }
+
         #region 对话前缀续写
 
         /// <summary>
@@ -403,7 +408,6 @@ namespace Xiyu.DeepSeek
                     .ToList();
         }
 
-        public bool ReceiveToolData { get; set; } = false;
 
         protected async UniTask<ChatCompletion> ChatCompletionStreamNotRecordAsync(string requestUrl, string requestJson, Action<StreamChatCompletion> onReceiveData,
             Func<ChatCompletion, ChatCompletion> resultFunc,
@@ -573,14 +577,14 @@ namespace Xiyu.DeepSeek
 
                 if (!deserializeObject.IsValid())
                 {
-                    Debug.LogWarning($"可能序列化了一个不包含有效值的结构体！json:\n{jsonContent}");
+                    Debug.LogWarning($"可能序列化了一个不包含有效值的<color=#E1BFFF>结构体</color>！<color=#d688d4>json</color>:\n<color=#d688d4>{jsonContent}</color>");
                 }
 
                 return deserializeObject;
             }
             catch (JsonSerializationException)
             {
-                Debug.LogError($"无法序列化对象{typeof(T)}-{jsonContent}");
+                Debug.LogError($"无法序列化<color=#c191ff>对象{typeof(T)}</color>-<color=#d688d4>{jsonContent}</color>");
                 throw;
             }
         }
@@ -599,14 +603,14 @@ namespace Xiyu.DeepSeek
 
                 if (deserializeObject.Error == null)
                 {
-                    return new Exception($"流式接收不以\"data: \"开头的数据：{jsonContent}");
+                    return new Exception($"流式接收不以\"<color=#4ab4cb>data:</color> \"开头的数据：<color=#d688d4>{jsonContent}</color>");
                 }
 
                 return new HttpResponseErrorException(deserializeObject.Error.Value);
             }
             catch (JsonSerializationException e)
             {
-                Debug.LogWarning($"流式接收不以\"data: \"开头的数据：{jsonContent}");
+                Debug.LogWarning($"流式接收不以\"<color=#4ab4cb>data:</color> \"开头的数据：<color=#d688d4>{jsonContent}</color>");
                 return e;
             }
         }
@@ -641,6 +645,9 @@ namespace Xiyu.DeepSeek
 
                     await UniTask.SwitchToThreadPool();
                     var line = await streamReader.ReadLineAsync();
+#if UNITY_EDITOR && LOG_STREAM_FULL_DATA
+                    Debug.Log(string.Concat("<color=#C191FF>", line, "</color>"));
+#endif
                     if (string.IsNullOrWhiteSpace(line))
                     {
                         continue;
@@ -688,6 +695,9 @@ namespace Xiyu.DeepSeek
 
                         await UniTask.SwitchToThreadPool();
                         var line = await streamReader.ReadLineAsync();
+#if UNITY_EDITOR && LOG_STREAM_FULL_DATA
+                        Debug.Log(string.Concat("<color=#C191FF>", line, "</color>"));
+#endif
                         if (string.IsNullOrWhiteSpace(line))
                         {
                             continue;
@@ -727,6 +737,10 @@ namespace Xiyu.DeepSeek
             }
 
             sseDate = line["data: ".Length..];
+
+#if UNITY_EDITOR && LOG_STREAM_DATA
+            Debug.Log(string.Concat("<color=#C191FF>", sseDate, "</color>"));
+#endif
 
             return sseDate.StartsWith("[DONE]", StringComparison.OrdinalIgnoreCase);
         }
@@ -790,7 +804,7 @@ namespace Xiyu.DeepSeek
                 var tools = report.GetMessage().ToolCalls;
                 if (tools.Count == 0)
                 {
-                    Debug.LogWarning("触发了工具调用，但是模型未返回有效工具！");
+                    Debug.LogWarning("触发了<color=#2eaf99>工具</color>调用，但是模型未返回有效<color=#2eaf99>工具</color>！");
                 }
                 else
                 {
@@ -798,7 +812,8 @@ namespace Xiyu.DeepSeek
                     MessageRequest.MessagesCollector.Append(assistantToolMessage);
 
 #if UNITY_EDITOR
-                    ((List<Tool>)tools).ForEach(tool => Debug.Log($"调用函数\"<color=#489fee>{tool.Function.Name}</color>\"参数列表：<color=#c678dd>{tool.Function.Arguments}</color>"));
+                    ((List<Tool>)tools).ForEach(tool =>
+                        Debug.Log($"调用<color=#38cb7d>函数</color>\"<color=#489fee>{tool.Function.Name}</color>\"参数列表：<color=#c678dd>{tool.Function.Arguments}</color>"));
 #endif
                 }
 

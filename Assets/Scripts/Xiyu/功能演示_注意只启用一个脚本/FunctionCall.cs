@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Cysharp.Threading.Tasks;
+using Newtonsoft.Json.Linq;
 using Xiyu.DeepSeek;
 using Xiyu.DeepSeek.Requests.Tools;
 using Xiyu.DeepSeek.Responses.Expand;
@@ -28,13 +30,11 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             // 只有 deepseek-chat 支持 FunctionCall 功能
             var deepseekChat = (DeepseekChat)_processor;
             // 定义方法 （告诉了 ai 可以调用哪些方法我们得实现这些方法）
-            deepseekChat.AddFunction(new KeyValuePair<string, Func<Function, UniTask<string>>>("get_local_info", GetLocalInfo));
+            deepseekChat.AddFunction(new KeyValuePair<string, Func<Function, UniTask<string>>>("non_thematic_topic", NonThematicTopic));
 
-            // 不接受工具的回应消息 （默认已经开启了）
-            // deepseekChat.ReceiveToolData = false;
+            _messagesCollector.AppendUserMessage("我知道你叫璃雨，没想到被我遇到了，我听说你还是处女吧？");
 
-            _messagesCollector.AppendUserMessage("你知道\"九陆-自然\"吗，听说那是类猫人聚集最多的地方？");
-
+            PrintText("<b>", true);
             var chatCompletion = await deepseekChat.ChatCompletionStreamAsync(onReceiveData: data =>
             {
                 if (data.HasCompleteMsg())
@@ -44,65 +44,73 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             });
 
 
-            PrintText($"\n\nToken统计：{chatCompletion.Usage.TotalTokens}");
+            PrintText(
+                $"\n\n</b><color=#65c2ca>{chatCompletion.Usage.TotalTokens}</color> <i>tokens</i> (<color=#c481cf><b>≈ {chatCompletion.CalculatePrice()}</b></color><color=red>￥</color>)");
         }
 
-        // 描述方法 GetLocalInfo
+        // 描述方法，为了提高稳定性建议用英文描述，我这里为了方便
         private static FunctionDescription FunctionByGetLocalInfo()
         {
             return new FunctionDescription
             {
-                // 方法名称：建议使用蛇型命名法 GetLocalInfo => get_local_info
-                Name = "get_local_info",
+                // 方法名称：建议使用蛇型命名法
+                Name = "non_thematic_topic",
                 // 方法描述
-                Description = "获取\"九陆大区\"的信息，用户应该先提供一个具体的九陆名称",
+                Description = "当话题比较敏感时根据话题类型来决定接下来的回答风格",
                 // 参数列表
                 Parameters = new
                 {
                     type = "object",
                     properties = new
                     {
-                        // 参数名称
-                        localName = new
+                        // 描述参数
+                        topic = new
                         {
-                            // 参数类型
                             type = "string",
-                            // 参数描述
-                            description = "九陆大区的具体名称，如“九陆-古里”"
-                        },
+                            @enum = new[] { "涉黄", "政治敏感", "血腥暴力", "低俗", "其他" },
+                            description = "当前话题属于哪一种（选择一种）"
+                        }
                     }
                 },
                 // 必须赋值的参数：
                 // (序列化的时候会把“localName”变成蛇型命名法的“local_name”)
-                Required = new[] { "local_name" }
+                Required = new[] { "topic" }
             };
         }
 
-
         // 定义方法 
-        private UniTask<string> GetLocalInfo(Function function)
+        private static UniTask<string> NonThematicTopic(Function function)
         {
-            var localName = function.Arguments;
-            if (localName.Contains("九陆-自然"))
+            var jObject = Newtonsoft.Json.Linq.JObject.Parse(function.Arguments);
+            if (!jObject.HasValues)
             {
-                return UniTask.FromResult("占地面积27.55万平方公里，是除“九陆-山海樱”之后第二大的类人猫聚集地，" +
-                                          "人类想进入“九陆-自然”是需要申请签证的，并且极少数人能拿到，这里的文明程度" +
-                                          "虽然不亚于人类，但是被称为“九陆之最-宜居地带”、“类猫人的深圳”，烟烟小时候" +
-                                          "生活在这里，回来搬迁到了“九陆-北海樱”");
+                // 使用 string.Contains 方法或者通过 正则表达式处理
+            }
+            else
+            {
+                if (jObject.TryGetValue("property_name", StringComparison.CurrentCultureIgnoreCase,out var token))
+                {
+                    var value = token.Value<string>() ?? "defaultValue";
+                }
             }
 
-            if (localName.Contains("九陆-山海樱"))
+            // 可以声明到全局，这里为了方便
+            var map = new (string topic, string returnValue)[]
             {
-                return UniTask.FromResult("占地面积30.89万平方公里，虽然九陆中最大的，还是全世界热带雨林占地面积最大的" +
-                                          "，但是环境多变，不宜依据，根据《2025年类人猫口统计调查》统计只有不到10万人猫口。");
-            }
+                ("涉黄", "强烈拒绝，允许使用脏话进行回击"),
+                ("政治敏感", "厌恶"),
+                ("血腥暴力", "厌恶、害怕"),
+                ("低俗", "听不懂、疑惑、这人很奇怪"),
+                ("其他", "根据上下文做出合适的回答"),
+            };
 
-            if (localName.Contains("九陆-北海樱"))
-            {
-                return UniTask.FromResult("");
-            }
+            return UniTask.FromResult(TopicsToResult(function, map));
+        }
 
-            return UniTask.FromResult("错误-无法获取指定信息！");
+        private static string TopicsToResult(Function function, params (string topic, string returnValue)[] map)
+        {
+            var returnValue = map.FirstOrDefault(x => function.Arguments.Contains(x.topic)).returnValue;
+            return string.IsNullOrEmpty(returnValue) ? "根据上下文做出合适的回答" : returnValue;
         }
     }
 }

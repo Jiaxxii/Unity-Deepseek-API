@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Xiyu.DeepSeek
 {
+    [DebuggerDisplay("{Error.ToString()}")]
     public class HttpResponseErrorException : Exception
     {
         public HttpResponseErrorException(Error error) : base(error.ToString())
