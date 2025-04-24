@@ -29,10 +29,6 @@ namespace Xiyu
         private void Awake()
         {
             var systemPrompt = Resources.Load<TextAsset>("SystemPrompt").text;
-            systemPrompt = systemPrompt
-                .Replace("\r", string.Empty)
-                .Replace("\n", string.Empty)
-                .Replace("{TIME}", DateTime.Now.ToString("yyyy年MM月dd日 HH时mm分"));
 
             collector = new MessagesCollector(
                 new SystemMessage(systemPrompt)

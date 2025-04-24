@@ -44,8 +44,7 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             });
 
 
-            PrintText(
-                $"\n\n</b><color=#65c2ca>{chatCompletion.Usage.TotalTokens}</color> <i>tokens</i> (<color=#c481cf><b>≈ {chatCompletion.CalculatePrice()}</b></color><color=red>￥</color>)");
+            PrintCount(chatCompletion.Usage);
         }
 
         // 描述方法，为了提高稳定性建议用英文描述，我这里为了方便
@@ -81,19 +80,6 @@ namespace Xiyu.功能演示_注意只启用一个脚本
         // 定义方法 
         private static UniTask<string> NonThematicTopic(Function function)
         {
-            var jObject = Newtonsoft.Json.Linq.JObject.Parse(function.Arguments);
-            if (!jObject.HasValues)
-            {
-                // 使用 string.Contains 方法或者通过 正则表达式处理
-            }
-            else
-            {
-                if (jObject.TryGetValue("property_name", StringComparison.CurrentCultureIgnoreCase,out var token))
-                {
-                    var value = token.Value<string>() ?? "defaultValue";
-                }
-            }
-
             // 可以声明到全局，这里为了方便
             var map = new (string topic, string returnValue)[]
             {

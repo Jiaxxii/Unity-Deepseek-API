@@ -6,7 +6,7 @@ namespace Xiyu.DeepSeek.Messages
     [DebuggerDisplay("Role:{Role} Content:{Content}")]
     public class AssistantMessage : Message
     {
-        public AssistantMessage(string content, string name = null) : base(Role.User, content, name)
+        public AssistantMessage(string content, string name = null) : base(Role.Assistant, content, name)
         {
         }
 

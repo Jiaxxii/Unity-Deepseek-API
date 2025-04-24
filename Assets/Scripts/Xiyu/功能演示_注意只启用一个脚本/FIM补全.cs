@@ -17,7 +17,8 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             // 提供开头（必填） 结尾（非必填），ai会补全中间的内容
             var fimRequest = new FimRequest("以下是C#中使用File.ReadAllText的示例```cs")
             {
-                Suffix = "\r\n```\r\n\n希望能帮助到您，有什么问题请继续向我提问！"
+                Suffix = "\r\n```\r\n\n希望能帮助到您，有什么问题请继续向我提问！",
+                Echo = true
             };
 
 
@@ -31,9 +32,8 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             }, recordToMessageList: false);
 
             await deepseekChat.FimChatCompletionAsync(fimRequest, recordToMessageList: true);
-            
-            PrintText(
-                $"\n\n</b><color=#65c2ca>{chatCompletion.Usage.TotalTokens}</color> <i>tokens</i> (<color=#c481cf><b>≈ {chatCompletion.CalculatePrice()}</b></color><color=red>￥</color>)");
+
+            PrintCount(chatCompletion.Usage);
         }
     }
 }

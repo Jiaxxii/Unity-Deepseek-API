@@ -1,10 +1,12 @@
-﻿using System.Linq;
+﻿using System.Globalization;
+using System.Linq;
 using JetBrains.Annotations;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Xiyu.DeepSeek;
 using Xiyu.DeepSeek.Requests;
+using Xiyu.DeepSeek.Responses.Expand;
 
 namespace Xiyu.功能演示_注意只启用一个脚本
 {
@@ -72,6 +74,21 @@ namespace Xiyu.功能演示_注意只启用一个脚本
         }
 
         protected void ClearText([CanBeNull] string start = null) => _output.text = start ?? string.Empty;
+
+
+        protected void PrintCount(DeepSeek.Responses.Usage usage, ChatModel? chatModel = null)
+        {
+            var printText = string.Concat(
+                "\n\n</b><color=#65c2ca>",
+                usage.TotalTokens.ToString(),
+                "</color> <i>tokens</i>",
+                "(<color=#c481cf><b>≈",
+                usage.CalculatePrice(chatModel ?? chatMessageRequest.Model).ToString(CultureInfo.CurrentCulture),
+                "</b></color><color=red>￥</color>)"
+            );
+
+            PrintText(printText);
+        }
 
         protected virtual string GetDefaultSystemPrompt() => Resources.Load<TextAsset>("SystemPrompt").text;
 

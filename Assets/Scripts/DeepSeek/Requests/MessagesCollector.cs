@@ -89,11 +89,17 @@ namespace Xiyu.DeepSeek.Requests
 
         public void AppendSystemMessage(string message, string name = null)
         {
+#if UNITY_EDITOR
+            Debug.Log($"<color=#C191FF>系统消息</color>：{message}");
+#endif
             Append(new Message(Role.System, message, name));
         }
 
         public void AppendUserMessage(string message, string name = null)
         {
+#if UNITY_EDITOR
+            Debug.Log($"<color=##30BC9A>用户</color>：<color=#548af7>{message}</color>");
+#endif
             Append(new Message(Role.User, message, name));
         }
 

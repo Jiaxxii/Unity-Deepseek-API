@@ -10,7 +10,6 @@ namespace Xiyu.功能演示_注意只启用一个脚本
         {
             base.Start();
 
-            // 发送消息 =》 早上好（扫了一眼昨天给她的晚饭）嗯……（完全没动）
             _messagesCollector.AppendUserMessage("你是叫璃雨吧？（打量）");
 
 
@@ -18,7 +17,7 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             // ai 回复大概率 会以 “（眼神厌恶）”、“（一下打开手）”、“（炸毛）”之类的话
 
             // 我们可以使用对话前缀续写来强制 ai 以我们提供的前缀开头
-            var prefixMessage = new AssistantPrefixMessage("（无动于衷）呼……（眼神充满冷淡）……");
+            var prefixMessage = new AssistantPrefixMessage("（无动于衷）呼……");
             var chatCompletion = await _processor.ChatCompletionStreamAsync(prefixMessage, onReceiveData: data =>
             {
                 if (data.HasCompleteMsg())
@@ -27,9 +26,6 @@ namespace Xiyu.功能演示_注意只启用一个脚本
                 }
             });
             
-            PrintText(
-                $"\n\n</b><color=#65c2ca>{chatCompletion.Usage.TotalTokens}</color> <i>tokens</i> (<color=#c481cf><b>≈ {chatCompletion.CalculatePrice()}</b></color><color=red>￥</color>)");
-
             //////////////////////////////////////////////////////////////////////
 
             await UniTask.WaitForSeconds(3);
@@ -40,7 +36,7 @@ namespace Xiyu.功能演示_注意只启用一个脚本
             _messagesCollector.AppendUserMessage("是我救了你，我就是你的主人（生气）！");
 
             // 但是最好不要提到“死”这类话题，ai可能会直接拒绝回答
-            var secondPrefixMessage = new AssistantPrefixMessage("（锋利的爪子抓向）恶心的人类，去死吧！");
+            var secondPrefixMessage = new AssistantPrefixMessage("（锋利的爪子抓向）恶心的人类，");
             var secondChatCompletion = await _processor.ChatCompletionStreamAsync(secondPrefixMessage, onReceiveData: data =>
             {
                 if (data.HasCompleteMsg())
@@ -49,8 +45,7 @@ namespace Xiyu.功能演示_注意只启用一个脚本
                 }
             });
 
-            PrintText(
-                $"\n\n</b><color=#65c2ca>{secondChatCompletion.Usage.TotalTokens}</color> <i>tokens</i> (<color=#c481cf><b>≈ {secondChatCompletion.CalculatePrice()}</b></color><color=red>￥</color>)");
+            PrintCount(chatCompletion.Usage + secondChatCompletion.Usage);
         }
     }
 }
