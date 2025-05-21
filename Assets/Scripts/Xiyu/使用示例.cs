@@ -6,6 +6,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using Xiyu.DeepSeek;
 using Xiyu.DeepSeek.Messages;
+using Xiyu.DeepSeek.Persistence;
 using Xiyu.DeepSeek.Requests;
 using Xiyu.DeepSeek.Responses;
 using Xiyu.DeepSeek.Responses.Expand;
@@ -108,7 +109,7 @@ namespace Xiyu
             collector.AppendUserMessage(input);
             collector.CheckAndThrow();
 
-            Debug.Log($"<color=#ab77dc>ChatComplete</color>请求：<color=#61AFEF>{input}</color>");
+            // Debug.Log($"<color=#ab77dc>ChatComplete</color>请求：<color=#61AFEF>{input}</color>");
             PrintText(string.Empty, true);
 
             var reasoningBegin = true;
@@ -184,6 +185,8 @@ namespace Xiyu
 
         private void OnDestroy()
         {
+            var filePath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "/Messages.txt";
+            collector.Messages.DoRemove().DoSerialize().AsFileAsync(filePath);
             ChatProcessor.Dispose();
         }
     }

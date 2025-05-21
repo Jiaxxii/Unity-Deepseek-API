@@ -121,6 +121,7 @@ namespace Xiyu.DeepSeek
             });
         }
 
+
         /// <summary>
         /// 发起一次聊天请求 【前缀续写】【即发即收】【回调式】【自动记录结果】 【强制开启流式接收】
         /// </summary>
@@ -142,6 +143,34 @@ namespace Xiyu.DeepSeek
                 RecordReport(report, prefixMessage.Content);
                 return prefixMessage.IsJointPrefix ? report.Completion(prefixMessage.Content) : report;
             }, cancellationToken);
+        }
+
+
+        public virtual UniTask<ChatCompletionHandle> GetStreamChatHandle(AssistantPrefixMessage prefixMessage, ChatCompletionHandle handle = null)
+        {
+            MessageRequest.SetStreamOptions(true);
+
+            var requestJson = GetRequestBody(prefixMessage).ToString(Formatting.None);
+
+            var requestUrl = GetBetaUrlPath(RequestUrlByChat);
+
+            return ChatCompletionHandle.Build(handle, onCompletion =>
+                ChatCompletionStreamNotRecordAsync(requestUrl, requestJson, report =>
+                {
+                    if (!prefixMessage.IsJointPrefix)
+                    {
+                        // 不需要补全前缀 （即便不需要补全前缀，记录的消息也得是完整的内容，返回的最后统计不需要）
+                        // 触发回调 （没有前缀信息）
+                        onCompletion?.Invoke(report);
+                    }
+
+                    // 需要补全前缀
+                    RecordReport(report, prefixMessage.Content);
+
+
+                    if (prefixMessage.IsJointPrefix)
+                        onCompletion?.Invoke(report.Completion(prefixMessage.Content));
+                }));
         }
 
         #endregion
@@ -191,6 +220,15 @@ namespace Xiyu.DeepSeek
             var requestJson = MessageRequest.SerializeRequestJson();
 
             return ChatCompletionStreamAsync(RequestUrlByChat, requestJson, onReport).WithCancellation(cancellationToken);
+        }
+
+        public virtual UniTask<ChatCompletionHandle> GetStreamChatHandle(ChatCompletionHandle handle = null)
+        {
+            MessageRequest.SetStreamOptions(true);
+            var requestJson = MessageRequest.SerializeRequestJson();
+
+
+            return ChatCompletionHandle.Build(handle, onCompletion => ChatCompletionStreamAsync(RequestUrlByChat, requestJson, onCompletion));
         }
 
         #endregion
@@ -524,6 +562,7 @@ namespace Xiyu.DeepSeek
         {
             using var requestMessage = CreateRequest(requestUri, requestJson, _mediaTypeByStream);
 
+            await UniTask.SwitchToThreadPool();
             var response = await MainClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                 .AsUniTask(false);
 
